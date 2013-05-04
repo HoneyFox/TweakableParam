@@ -27,10 +27,10 @@ namespace TweakableParam
 		public override void OnStart(StartState state)
 		{
 			m_startState = state;
-
+			Debug.Log("Trying to get field info of: " + targetField);
 			object obj = null;
 			FieldInfo fi = GetFieldInfo(targetField, out obj);
-			if (obj != null && fi != null)
+			if (obj != null)
 			{
 				if (m_startState == StartState.Editor)
 				{
@@ -94,16 +94,19 @@ namespace TweakableParam
 					if(targetModule != null)
 					{
 						obj = parent;
+						Debug.Log("Type is: " + targetModule.GetType().FullName);
 						return targetModule.GetType().GetField(fieldName);
 					}
 					else if(targetResource != null)
 					{
 						obj = parent;
+						Debug.Log("Type is: " + targetResource.GetType().FullName);
 						return targetResource.GetType().GetField(fieldName);
 					}
 					else
 					{
 						obj = parent;
+						Debug.Log("Type is: " + this.part.GetType().FullName);
 						return this.part.GetType().GetField(fieldName);
 					}
 				}

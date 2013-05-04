@@ -20,6 +20,7 @@ namespace TweakableParam
 		Vector2 verticalScroll = Vector2.zero;
 		#endregion
 
+		private List<TweakableParamGUIGroup> m_guiGroups = new List<TweakableParamGUIGroup>();
 		private List<TweakableParamGUIItem> m_guiItems = new List<TweakableParamGUIItem>();
 
 		public void RegisterGUIItem(TweakableParamGUIItem item)
@@ -29,6 +30,20 @@ namespace TweakableParam
 
 			if (m_guiItems.Contains(item)) return;
 			m_guiItems.Add(item);
+
+			foreach (TweakableParamGUIGroup group in m_guiGroups)
+			{
+				if (group.m_part == item.m_controller.part)
+				{
+					// Already has a group of the same part.
+					group.m_guiItems.Add(item);
+					return;
+				}
+			}
+			
+			TweakableParamGUIGroup newGroup = new TweakableParamGUIGroup(this, item.m_controller.part);
+			m_guiGroups.Add(newGroup);
+			newGroup.m_guiItems.Add(item);
 		}
 
 		public void UnregisterGUIItem(TweakableParamGUIItem item)
@@ -37,6 +52,20 @@ namespace TweakableParam
 				m_guiItems.Remove(item);
 
 			if (m_guiItems.Count == 0) DeleteGUI();
+
+			foreach (TweakableParamGUIGroup group in m_guiGroups)
+			{
+				if (group.m_part == item.m_controller.part)
+				{
+					// Already has a group of the same part.
+					group.m_guiItems.Remove(item);
+					if (group.m_guiItems.Count == 0)
+					{
+						m_guiGroups.Remove(group);
+					}
+					return;
+				}
+			}
 		}
 
 		public void ClearGUIItem()
@@ -137,10 +166,9 @@ namespace TweakableParam
 				{
 					verticalScroll = GUILayout.BeginScrollView(verticalScroll, GUILayout.ExpandWidth(true), GUILayout.MinWidth(Screen.width / 4), GUILayout.ExpandHeight(true), GUILayout.MinHeight(Screen.height / 8), GUILayout.MaxHeight(Screen.height / 2));
 					{
-						foreach (TweakableParamGUIItem item in m_guiItems)
+						foreach (TweakableParamGUIGroup group in m_guiGroups)
 						{
-							if (item.CheckAttached())
-								item.RenderGUI();
+							group.RenderGUI();
 						}
 					}
 					GUILayout.EndScrollView();
@@ -158,14 +186,69 @@ namespace TweakableParam
 		}
 	}
 
-	class TweakableParamGUIItem
+	class TweakableParamGUIGroup
 	{
 		public TweakableParamGUI m_gui = null;
-		public ModuleTweakableParam m_controller = null;
+		public Part m_part = null;
+		public List<TweakableParamGUIItem> m_guiItems = new List<TweakableParamGUIItem>();
 
 		#region GUI Related
 		bool isExpanded = false;
 		#endregion
+
+		public TweakableParamGUIGroup(TweakableParamGUI gui, Part part)
+		{
+			m_gui = gui;
+			m_part = part;
+		}
+
+		public void RenderGUI()
+		{
+			bool isExpandButtonClicked = false;
+
+			GUIStyle sty = new GUIStyle(GUI.skin.button);
+			sty.normal.textColor = sty.focused.textColor = Color.white;
+			sty.hover.textColor = sty.active.textColor = Color.yellow;
+			sty.onNormal.textColor = sty.onFocused.textColor = sty.onHover.textColor = sty.onActive.textColor = Color.green;
+			sty.padding = new RectOffset(4, 4, 4, 4);
+
+			GUILayout.BeginHorizontal(GUILayout.ExpandWidth(true));
+			{
+				isExpandButtonClicked = GUILayout.Button((isExpanded ? "-" : "+"), sty, GUILayout.ExpandWidth(true), GUILayout.MaxWidth(30.0f));
+				GUILayout.Label(m_part.partInfo.title, sty, GUILayout.ExpandWidth(true));
+			}
+			GUILayout.EndHorizontal();
+
+			if (isExpanded)
+			{
+				m_part.SetHighlightType(Part.HighlightType.AlwaysOn);
+				m_part.SetHighlight(true);
+
+				foreach (TweakableParamGUIItem item in m_guiItems)
+				{
+					if (item.CheckAttached())
+						item.RenderGUI();
+				}
+			}
+			else
+			{
+				if (m_part.highlightType == Part.HighlightType.AlwaysOn)
+				{
+					m_part.SetHighlightType(Part.HighlightType.OnMouseOver);
+					m_part.SetHighlight(false);
+				}
+			}
+
+			if (isExpandButtonClicked)
+				isExpanded = !isExpanded;
+		}
+
+	}
+
+	class TweakableParamGUIItem
+	{
+		public TweakableParamGUI m_gui = null;
+		public ModuleTweakableParam m_controller = null;
 
 		public TweakableParamGUIItem(TweakableParamGUI gui, ModuleTweakableParam controller)
 		{
@@ -214,46 +297,23 @@ namespace TweakableParam
 		{
 			bool isIncreaseButtonClicked = false;
 			bool isDecreaseButtonClicked = false;
-			bool isExpandButtonClicked = false;
-
+			
 			GUIStyle sty = new GUIStyle(GUI.skin.button);
 			sty.normal.textColor = sty.focused.textColor = Color.white;
 			sty.hover.textColor = sty.active.textColor = Color.yellow;
 			sty.onNormal.textColor = sty.onFocused.textColor = sty.onHover.textColor = sty.onActive.textColor = Color.green;
 			sty.padding = new RectOffset(4, 4, 4, 4);
 
+			GUILayout.Label("Field: " + m_controller.targetField, sty, GUILayout.ExpandWidth(true));
+			GUILayout.Label("Adjustment Range: (" + m_controller.minValue.ToString() + " - " + m_controller.maxValue.ToString() + "), Step: " + m_controller.stepValue.ToString(), sty, GUILayout.ExpandWidth(true));
 			GUILayout.BeginHorizontal(GUILayout.ExpandWidth(true));
 			{
-				isExpandButtonClicked = GUILayout.Button((isExpanded ? "-" : "+"), sty, GUILayout.ExpandWidth(true), GUILayout.MaxWidth(30.0f));
-				GUILayout.Label(m_controller.part.partInfo.title, sty, GUILayout.ExpandWidth(true));
+				isDecreaseButtonClicked = GUILayout.Button("-", sty, GUILayout.ExpandWidth(true), GUILayout.MaxWidth(30.0f));
+				GUILayout.Box(m_controller.tweakedValue.ToString(), sty, GUILayout.ExpandWidth(true));
+				isIncreaseButtonClicked = GUILayout.Button("+", sty, GUILayout.ExpandWidth(true), GUILayout.MaxWidth(30.0f));
 			}
 			GUILayout.EndHorizontal();
-			if (isExpanded)
-			{
-				m_controller.part.SetHighlightType(Part.HighlightType.AlwaysOn);
-				m_controller.part.SetHighlight(true);
-				GUILayout.Label("Field: " + m_controller.targetField, sty, GUILayout.ExpandWidth(true));
-				GUILayout.Label("Adjustment Range: (" + m_controller.minValue.ToString() + " - " + m_controller.maxValue.ToString() + "), Step: " + m_controller.stepValue.ToString(), sty, GUILayout.ExpandWidth(true));
-				GUILayout.BeginHorizontal(GUILayout.ExpandWidth(true));
-				{
-					isDecreaseButtonClicked = GUILayout.Button("-", sty, GUILayout.ExpandWidth(true), GUILayout.MaxWidth(30.0f));
-					GUILayout.Box(m_controller.tweakedValue.ToString(), sty, GUILayout.ExpandWidth(true));
-					isIncreaseButtonClicked = GUILayout.Button("+", sty, GUILayout.ExpandWidth(true), GUILayout.MaxWidth(30.0f));
 
-				}
-				GUILayout.EndHorizontal();
-			}
-			else
-			{
-				if (m_controller.part.highlightType == Part.HighlightType.AlwaysOn)
-				{
-					m_controller.part.SetHighlightType(Part.HighlightType.OnMouseOver);
-					m_controller.part.SetHighlight(false);
-				}
-			}
-
-			if (isExpandButtonClicked)
-				isExpanded = !isExpanded;
 			if (isDecreaseButtonClicked)
 				m_controller.DecreaseValue();
 			if (isIncreaseButtonClicked)
