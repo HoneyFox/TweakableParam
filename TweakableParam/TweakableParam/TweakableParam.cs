@@ -21,6 +21,8 @@ namespace TweakableParam
 		public float minValue;
 		[KSPField(isPersistant = false)]
 		public float maxValue;
+		[KSPField(isPersistant = false)]
+		public float stepValue;
 
 		public override void OnStart(StartState state)
 		{
@@ -32,10 +34,14 @@ namespace TweakableParam
 			{
 				if (m_startState == StartState.Editor)
 				{
-					// TODO: Register this instance to the GUI here.
+					TweakableParamGUI.GetInstance().CheckClear();
+					TweakableParamGUIItem item = new TweakableParamGUIItem(TweakableParamGUI.GetInstance(), this);
+					tweakedValue = (float)fi.GetValue(obj);
 				}
 				else
 				{
+					TweakableParamGUI.GetInstance().ClearGUIItem();
+
 					if (tweakedValue > maxValue) tweakedValue = maxValue;
 					if (tweakedValue < minValue) tweakedValue = minValue;
 					Debug.Log(String.Format("Setting tweakable parameter: {0} to {1}", fi.Name, tweakedValue));
@@ -104,6 +110,20 @@ namespace TweakableParam
 			}
 			obj = null;
 			return null;
+		}
+
+		public void DecreaseValue()
+		{
+			tweakedValue -= stepValue;
+			if (tweakedValue < minValue) tweakedValue = minValue;
+			if (tweakedValue > maxValue) tweakedValue = maxValue;
+		}
+
+		public void IncreaseValue()
+		{
+			tweakedValue += stepValue;
+			if (tweakedValue < minValue) tweakedValue = minValue;
+			if (tweakedValue > maxValue) tweakedValue = maxValue;
 		}
 
 		public override void OnUpdate()
