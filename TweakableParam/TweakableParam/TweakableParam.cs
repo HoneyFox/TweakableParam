@@ -15,7 +15,7 @@ namespace TweakableParam
 		public string targetField;
 
 		[KSPField(isPersistant = true)]
-		public float tweakedValue;
+		public float tweakedValue = -1.0f;
 		
 		[KSPField(isPersistant = false)]
 		public float minValue;
@@ -23,6 +23,9 @@ namespace TweakableParam
 		public float maxValue;
 		[KSPField(isPersistant = false)]
 		public float stepValue;
+
+		[KSPField(isPersistant = false)]
+		public bool setOnlyOnLaunchPad = false;
 
 		public override void OnStart(StartState state)
 		{
@@ -32,11 +35,16 @@ namespace TweakableParam
 			FieldInfo fi = GetFieldInfo(targetField, out obj);
 			if (obj != null)
 			{
+				Debug.Log("Field type is: " + fi.FieldType.Name);
 				if (m_startState == StartState.Editor)
 				{
 					TweakableParamGUI.GetInstance().CheckClear();
 					TweakableParamGUIItem item = new TweakableParamGUIItem(TweakableParamGUI.GetInstance(), this);
-					tweakedValue = (float)fi.GetValue(obj);
+					if (tweakedValue == -1.0f)
+					{
+						Debug.Log("Field is: " + fi.GetValue(obj).ToString());
+						tweakedValue = Convert.ToSingle(fi.GetValue(obj));
+					}
 				}
 				else
 				{
@@ -45,7 +53,8 @@ namespace TweakableParam
 					if (tweakedValue > maxValue) tweakedValue = maxValue;
 					if (tweakedValue < minValue) tweakedValue = minValue;
 					Debug.Log(String.Format("Setting tweakable parameter: {0} to {1}", fi.Name, tweakedValue));
-					fi.SetValue(obj, tweakedValue);
+					if(!setOnlyOnLaunchPad || ((int)m_startState & (int)(StartState.PreLaunch)) != 0)
+						fi.SetValue(obj, Convert.ChangeType(tweakedValue, fi.FieldType));
 				}
 			}
 			base.OnStart(state);

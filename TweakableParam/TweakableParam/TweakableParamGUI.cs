@@ -70,6 +70,7 @@ namespace TweakableParam
 
 		public void ClearGUIItem()
 		{
+			m_guiGroups.Clear();
 			m_guiItems.Clear();
 			DeleteGUI();
 		}
@@ -77,6 +78,18 @@ namespace TweakableParam
 		public void CheckClear()
 		{
 			Debug.Log("CheckClear()");
+			for (int i = 0; i < m_guiGroups.Count; ++i)
+			{
+				for (int j = 0; j < m_guiGroups[i].m_guiItems.Count; ++j)
+				{
+					if (m_guiGroups[i].m_guiItems[j] == null || m_guiGroups[i].m_guiItems[j].CheckValid() == false)
+					{
+						m_guiGroups[i].m_guiItems.RemoveAt(j);
+						--j;
+					}
+				}
+			}
+
 			for (int i = 0; i < m_guiItems.Count; ++i)
 			{
 				if (m_guiItems[i] == null)
@@ -90,6 +103,7 @@ namespace TweakableParam
 					--i;
 				}
 			}
+
 			if (m_guiItems.Count == 0)
 			{
 				Debug.Log("Nothing left.");
@@ -117,7 +131,7 @@ namespace TweakableParam
 				windowUpdated = false;
 			}
 
-			WindowPos = GUILayout.Window(2121316, WindowPos, WindowFunc, "Tweakable Parametrs", GUILayout.ExpandWidth(true), GUILayout.ExpandHeight(true), GUILayout.MinWidth(200));
+			WindowPos = GUILayout.Window(2121316, WindowPos, WindowFunc, "Tweakable Parameters", GUILayout.ExpandWidth(true), GUILayout.ExpandHeight(true), GUILayout.MinWidth(200));
 			Vector3 mousePos = Input.mousePosition;         //Mouse location; based on Kerbal Engineer Redux code
 			mousePos.y = Screen.height - mousePos.y;
 			bool cursorInGUI = WindowPos.Contains(mousePos);
@@ -138,13 +152,9 @@ namespace TweakableParam
 		{
 			bool isButtonClicked = false;
 			if (isMinimized)
-			{
 				GUILayout.BeginVertical(GUILayout.ExpandWidth(true), GUILayout.ExpandHeight(true), GUILayout.MinWidth(Screen.width / 4), GUILayout.MaxWidth(Screen.width / 3));
-			}
 			else
-			{
 				GUILayout.BeginVertical(GUILayout.ExpandWidth(true), GUILayout.ExpandHeight(true), GUILayout.MinWidth(Screen.width / 4), GUILayout.MaxWidth(Screen.width / 3), GUILayout.MinHeight(Screen.height / 2));
-			}
 			{
 				GUILayout.BeginHorizontal(GUILayout.ExpandWidth(true), GUILayout.ExpandHeight(true), GUILayout.MinWidth(Screen.width / 4));
 				{
@@ -206,6 +216,8 @@ namespace TweakableParam
 		{
 			bool isExpandButtonClicked = false;
 
+			if (m_gui == null || m_part == null) return;
+
 			GUIStyle sty = new GUIStyle(GUI.skin.button);
 			sty.normal.textColor = sty.focused.textColor = Color.white;
 			sty.hover.textColor = sty.active.textColor = Color.yellow;
@@ -214,7 +226,7 @@ namespace TweakableParam
 
 			GUILayout.BeginHorizontal(GUILayout.ExpandWidth(true));
 			{
-				isExpandButtonClicked = GUILayout.Button((isExpanded ? "-" : "+"), sty, GUILayout.ExpandWidth(true), GUILayout.MaxWidth(30.0f));
+				isExpandButtonClicked = GUILayout.Button((isExpanded ? "<" : ">"), sty, GUILayout.ExpandWidth(true), GUILayout.MaxWidth(30.0f));
 				GUILayout.Label(m_part.partInfo.title, sty, GUILayout.ExpandWidth(true));
 			}
 			GUILayout.EndHorizontal();
@@ -309,7 +321,7 @@ namespace TweakableParam
 			GUILayout.BeginHorizontal(GUILayout.ExpandWidth(true));
 			{
 				isDecreaseButtonClicked = GUILayout.Button("-", sty, GUILayout.ExpandWidth(true), GUILayout.MaxWidth(30.0f));
-				GUILayout.Box(m_controller.tweakedValue.ToString(), sty, GUILayout.ExpandWidth(true));
+				GUILayout.Box(Math.Round(m_controller.tweakedValue, 2).ToString("F2"), sty, GUILayout.ExpandWidth(true));
 				isIncreaseButtonClicked = GUILayout.Button("+", sty, GUILayout.ExpandWidth(true), GUILayout.MaxWidth(30.0f));
 			}
 			GUILayout.EndHorizontal();
