@@ -1,0 +1,516 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Text.RegularExpressions;
+using System.Reflection;
+using UnityEngine;
+
+namespace TweakableParam
+{
+	class AddTweakableParamGUI : MonoBehaviour
+	{
+		public static AddTweakableParamGUI s_singleton = null;
+		public static GameObject s_gameObjectInstance = null;
+		public static AddTweakableParamGUI GetInstance() { return CreateInstance(); }
+		private static AddTweakableParamGUI CreateInstance() 
+		{
+			if (s_gameObjectInstance == null)
+			{
+				s_gameObjectInstance = new GameObject("AddTweakableParamGUI", typeof(AddTweakableParamGUI));
+				UnityEngine.Object.DontDestroyOnLoad(s_gameObjectInstance);
+				s_singleton = s_gameObjectInstance.GetComponent<AddTweakableParamGUI>();
+			}
+			return s_singleton; 
+		}
+
+		public void Awake()
+		{
+			DontDestroyOnLoad(this);
+		}
+
+		public void Update()
+		{
+			if (EditorLogic.fetch != null)
+			{
+				if (Input.GetKeyDown(KeyCode.P))
+				{
+					Debug.Log("P Received.");
+					if (m_selectedPart != EditorLogic.fetch.PartSelected)
+					{
+						//Debug.Log("Part selected changed.");
+						m_selectedPart = EditorLogic.fetch.PartSelected;
+						if (m_selectedPart != null)
+						{
+							//Debug.Log("We've selected a part.");
+							ClearGUINode();
+							GenerateGUINodes();
+						}
+						else
+						{
+							//Debug.Log("We've selected nothing.");
+							ClearGUINode();
+						}
+					}
+					else
+					{ 
+						//Debug.Log("Part selected unchanged: " + ((m_selectedPart == null) ? "null" : m_selectedPart.name));
+					}
+				}
+			}
+			else
+			{
+				m_selectedPart = null;
+				ClearGUINode();
+			}
+		}
+
+		private void GenerateGUINodes()
+		{
+			if (m_selectedPart == null) return;
+
+			//Debug.Log("Generating nodes...");
+			FieldInfo[] fields = m_selectedPart.GetType().GetFields();
+			foreach (FieldInfo fi in fields)
+			{
+				//Debug.Log("Iterating all fields: " + fi.FieldType.Name + " " + fi.Name);
+				if (fi.IsPublic == false)
+				{
+					//Debug.Log("Non-public field, skipping...");
+					continue;
+				}
+				if
+				(
+					fi.FieldType.Equals(typeof(Double)) ||
+					fi.FieldType.Equals(typeof(Single))
+				)
+				{ 
+					// This is a valid node.
+					ReflectedObjectGUINode node = new ReflectedObjectGUINode(null, this, fi, fi.Name, true, "0.0", "1.0", "0.1", false);
+					RegisterGUINode(node);
+				}
+				else if
+				(
+					fi.FieldType.Equals(typeof(UInt32)) ||
+					fi.FieldType.Equals(typeof(Int32))
+				)
+				{
+					// This is a valid node.
+					ReflectedObjectGUINode node = new ReflectedObjectGUINode(null, this, fi, fi.Name, true, "0", "10", "1", false);
+					RegisterGUINode(node);
+				}
+			}
+
+			for (int i = 0; i < m_selectedPart.Modules.Count; ++i)
+			{
+				PartModule partModule = m_selectedPart.Modules.GetModule(i);
+				//Debug.Log("Iterating all part modules: " + partModule.GetType().Name);
+				string partModuleTypeName = partModule.GetType().Name;
+				if (partModuleTypeName != "ModuleTweakableParam")
+				{
+					// This is a valid node.
+					ReflectedObjectGUINode node = new ReflectedObjectGUINode(null, this, null, "Module(" + partModule.GetType().Name + ")", false, null, null, null, false);
+					
+					FieldInfo[] moduleFields = partModule.GetType().GetFields();
+					foreach (FieldInfo fi in moduleFields)
+					{
+						//Debug.Log("Iterating all fields: " + fi.FieldType.ToString() + " " + fi.Name);
+						if (fi.IsPublic == false)
+						{
+							//Debug.Log("Non-public field, skipping...");
+							continue;
+						}
+						if
+						(
+							fi.FieldType.Equals(typeof(Double)) ||
+							fi.FieldType.Equals(typeof(Single))
+						)
+						{
+							// This is a valid node.
+							ReflectedObjectGUINode subNode = new ReflectedObjectGUINode(node, this, fi, fi.Name, true, "0.0", "1.0", "0.1", false);
+							node.m_subNodes.Add(subNode);
+						}
+						else if
+						(
+							fi.FieldType.Equals(typeof(UInt32)) ||
+							fi.FieldType.Equals(typeof(Int32))
+						)
+						{
+							// This is a valid node.
+							ReflectedObjectGUINode subNode = new ReflectedObjectGUINode(node, this, fi, fi.Name, true, "0", "10", "1", false);
+							node.m_subNodes.Add(subNode);
+						}
+					}
+					RegisterGUINode(node);
+				}
+			}
+
+			for (int i = 0; i < m_selectedPart.Resources.Count; ++i)
+			{
+				PartResource partResource = m_selectedPart.Resources.list[i];
+				string resourceName = partResource.resourceName;
+				//Debug.Log("Iterating all part resources: " + resourceName);
+				// This is a valid node.
+				ReflectedObjectGUINode node = new ReflectedObjectGUINode(null, this, null, "Resource(" + resourceName + ")", false, null, null, null, false);
+
+				FieldInfo[] resourceFields = partResource.GetType().GetFields();
+				foreach (FieldInfo fi in resourceFields)
+				{
+					//Debug.Log("Iterating all fields: " + fi.FieldType.Name + " " + fi.Name);
+					if (fi.IsPublic == false)
+					{
+						//Debug.Log("Non-public field, skipping...");
+						continue;
+					} 
+					if
+					(
+						fi.FieldType.Equals(typeof(Double)) ||
+						fi.FieldType.Equals(typeof(Single))
+					)
+					{
+						if (fi.Name == "amount")
+						{
+							// This is a special node.
+							double maxValue = partResource.maxAmount;
+							double stepValue = maxValue / 10.0;
+							ReflectedObjectGUINode subNode = new ReflectedObjectGUINode(node, this, fi, fi.Name, true, "0.0", maxValue.ToString(), stepValue.ToString(), true);
+							node.m_subNodes.Add(subNode);
+						}
+						else if (fi.Name == "maxAmount")
+						{
+							// This is a special node.
+							double maxValue = partResource.maxAmount;
+							double stepValue = maxValue / 10.0;
+							ReflectedObjectGUINode subNode = new ReflectedObjectGUINode(node, this, fi, fi.Name, true, "0.0", maxValue.ToString(), stepValue.ToString(), false);
+							node.m_subNodes.Add(subNode);
+						}
+						else
+						{
+							// This is a valid node.
+							ReflectedObjectGUINode subNode = new ReflectedObjectGUINode(node, this, fi, fi.Name, true, "0.0", "1.0", "0.1", false);
+							node.m_subNodes.Add(subNode);
+						}
+					}
+				}
+				RegisterGUINode(node);
+			}
+		}
+
+		public void AddModuleToSelectedPart(string targetField, string min, string max, string step, bool setOnlyOnLaunchPad)
+		{
+			Debug.Log("Start iterating modules.");
+			for(int i = 0; i < m_selectedPart.Modules.Count; ++i)
+			{
+				if (m_selectedPart.Modules.GetModule(i) is ModuleTweakableParam)
+				{
+					Debug.Log("Find a ModuleTweakableParam.");
+					ModuleTweakableParam module = m_selectedPart.Modules.GetModule(i) as ModuleTweakableParam;
+					if (module.useMultipleParameterLogic)
+					{
+						Debug.Log("Got it.");
+						// We've found the one.
+						AddModuleToSelectedPart(module, module.m_startState, module.part, targetField, min, max, step, setOnlyOnLaunchPad);
+						break;
+					}
+					else
+					{
+						Debug.Log("It's using single parameter mode.");
+					}
+				}
+			}
+		}
+
+		public void AddModuleToSelectedPart(ModuleTweakableParam module, PartModule.StartState state, Part part, string targetField, string min, string max, string step, bool setOnlyOnLaunchPad)
+		{
+			Debug.Log("AddModuleToSelectedPart()");
+			if (state != PartModule.StartState.Editor) return;
+
+			Debug.Log(targetField + ": " + min + " - " + max + ", " + step + " " + (setOnlyOnLaunchPad ? "T" : "F"));
+			float minValue = Convert.ToSingle(min);
+			float maxValue = Convert.ToSingle(max);
+			float stepValue = Convert.ToSingle(step);
+
+			ModuleTweakableParam targetModule = null;
+			ModuleTweakableSubParam targetSubModule = null;
+			for (int i = 0; i < part.Modules.Count; ++i)
+			{
+				PartModule partModule = part.Modules.GetModule(i);
+				if (partModule is ModuleTweakableParam)
+				{
+					if ((partModule as ModuleTweakableParam).targetField == targetField)
+					{
+						Debug.Log("Already have the module.");
+						targetModule = partModule as ModuleTweakableParam;
+					}
+				}
+			}
+
+			if (targetModule == null)
+			{
+				for (int i = 0; i < part.Modules.Count; ++i)
+				{
+					PartModule partModule = part.Modules.GetModule(i);
+					if (partModule is ModuleTweakableSubParam)
+					{
+						if ((partModule as ModuleTweakableSubParam).targetField == targetField)
+						{
+							Debug.Log("Already have the submodule.");
+							targetSubModule = partModule as ModuleTweakableSubParam;
+						}
+					}
+				}
+			}
+
+			if (targetModule == null && targetSubModule == null)
+			{
+				Debug.Log("Create a new module.");
+				targetSubModule = (part.AddModule("ModuleTweakableSubParam") as ModuleTweakableSubParam);
+
+				targetSubModule.targetField = targetField;
+				targetSubModule.minValue = minValue;
+				targetSubModule.maxValue = maxValue;
+				targetSubModule.stepValue = stepValue;
+				targetSubModule.setOnlyOnLaunchPad = setOnlyOnLaunchPad;
+
+				targetSubModule.tweakedValue = maxValue;
+
+				targetSubModule.OnStart(PartModule.StartState.Editor);
+
+				module.tweakableParams.Add(targetSubModule);
+				module.tweakableParamModulesData = module.tweakableParamModulesData.TrimEnd(',') +
+					"<" +
+					targetModule.targetField + "," +
+					targetModule.stepValue.ToString("F2") + "," +
+					targetModule.minValue.ToString("F2") + "," +
+					targetModule.maxValue.ToString("F2") + "," +
+					targetModule.stepValue.ToString("F2") + "," +
+					(targetModule.setOnlyOnLaunchPad ? "1" : "0") + "," +
+					">,";
+			}
+			else if(targetModule != null)
+			{
+				targetModule.minValue = minValue;
+				targetModule.maxValue = maxValue;
+				targetModule.stepValue = stepValue;
+
+				if (targetModule.tweakedValue > maxValue)
+					targetModule.tweakedValue = maxValue;
+				else if (targetModule.tweakedValue < minValue)
+					targetModule.tweakedValue = minValue;
+			}
+			else if (targetSubModule != null)
+			{
+				targetSubModule.minValue = minValue;
+				targetSubModule.maxValue = maxValue;
+				targetSubModule.stepValue = stepValue;
+
+				if (targetSubModule.tweakedValue > maxValue)
+					targetSubModule.tweakedValue = maxValue;
+				else if (targetSubModule.tweakedValue < minValue)
+					targetSubModule.tweakedValue = minValue;
+			}
+		}
+
+		#region GUI Related
+		Rect WindowPos = new Rect(300, 50, 400, 600);
+		bool windowUpdated = false;
+		bool editorLocked = false;
+		Vector2 verticalScroll = Vector2.zero;
+		#endregion
+
+		private Part m_selectedPart = null;
+		private List<ReflectedObjectGUINode> m_guiNodes = new List<ReflectedObjectGUINode>();
+
+		public void RegisterGUINode(ReflectedObjectGUINode node)
+		{
+			if (m_guiNodes.Count == 0)
+				AddGUI();
+
+			if (m_guiNodes.Contains(node)) return;
+
+			m_guiNodes.Add(node);
+		}
+
+		public void ClearGUINode()
+		{
+			if (m_guiNodes.Count != 0)
+			{
+				m_guiNodes.Clear();
+				DeleteGUI();
+			}
+		}
+
+		public void CheckClear()
+		{
+			if (m_selectedPart == null)
+			{
+				//Debug.Log("CheckClear: clearing.");
+				ClearGUINode();
+			}
+		}
+
+		private void AddGUI()
+		{
+			//Debug.Log("AddGUI of AddTweakableParamGUI");
+			RenderingManager.AddToPostDrawQueue(3, DrawGUI);
+		}
+
+		private void DeleteGUI()
+		{
+			//Debug.Log("DeleteGUI of AddTweakableParamGUI");
+			RenderingManager.RemoveFromPostDrawQueue(3, DrawGUI);
+		}
+
+		public void DrawGUI()
+		{
+			GUI.skin = HighLogic.Skin;
+
+			if (windowUpdated)
+			{
+				WindowPos.width = 400.0f;
+				WindowPos.height = 600.0f;
+				windowUpdated = false;
+			}
+
+			CheckClear();
+
+			WindowPos = GUILayout.Window(2121318, WindowPos, WindowFunc, "Select Parameter", GUILayout.Width(400.0f), GUILayout.Height(600.0f));
+			Vector3 mousePos = Input.mousePosition;         //Mouse location; based on Kerbal Engineer Redux code
+			mousePos.y = Screen.height - mousePos.y;
+			bool cursorInGUI = WindowPos.Contains(mousePos);
+			//This locks and unlocks the editor as necessary; cannot constantly call the lock or unlock functions as that causes the editor to be constantly locked
+			if (cursorInGUI && !editorLocked && !EditorLogic.editorLocked)
+			{
+				EditorLogic.fetch.Lock(true, true, true);
+				editorLocked = true;
+			}
+			else if (!cursorInGUI && editorLocked && EditorLogic.editorLocked)
+			{
+				EditorLogic.fetch.Unlock();
+				editorLocked = false;
+			}
+		}
+
+		public void WindowFunc(int id)
+		{
+			GUILayout.BeginVertical(GUILayout.ExpandWidth(true), GUILayout.ExpandHeight(true));
+			{
+				verticalScroll = GUILayout.BeginScrollView(verticalScroll, GUILayout.ExpandWidth(true), GUILayout.ExpandHeight(true));
+				{
+					//Debug.Log("Displaying nodes: " + m_guiNodes.Count.ToString());
+					foreach (ReflectedObjectGUINode node in m_guiNodes)
+					{
+						node.RenderGUI();
+					}
+				}
+				GUILayout.EndScrollView();
+			}
+			GUILayout.EndVertical();
+
+			GUI.DragWindow(new Rect(0, 0, 2000, 30));
+		}
+	}
+
+	class ReflectedObjectGUINode
+	{
+		public ReflectedObjectGUINode m_parent = null;
+		public AddTweakableParamGUI m_gui = null;
+		public FieldInfo m_fieldInfo = null;
+		public string m_field = "";
+		public List<ReflectedObjectGUINode> m_subNodes = new List<ReflectedObjectGUINode>();
+		public bool m_isLeaf = true;
+		public string m_inputMin = "0.0";
+		public string m_inputMax = "1.0";
+		public string m_inputStep = "0.1";
+		public bool m_setOnlyOnLaunchPad = false;
+
+		#region GUI Related
+		bool isExpanded = false;
+		#endregion
+
+		public ReflectedObjectGUINode(ReflectedObjectGUINode parent, AddTweakableParamGUI gui, FieldInfo fieldInfo, string field, bool isLeaf, string inputMin, string inputMax, string inputStep, bool setOnlyOnLaunchPad)
+		{
+			m_parent = parent;
+			m_gui = gui;
+			m_fieldInfo = fieldInfo;
+			m_field = field;
+			m_isLeaf = isLeaf;
+			if (inputMin != null)
+				m_inputMin = inputMin;
+			if (inputMax != null)
+				m_inputMax = inputMax;
+			if (inputStep != null)
+				m_inputStep = inputStep;
+			m_setOnlyOnLaunchPad = setOnlyOnLaunchPad;
+		}
+
+		public void RenderGUI()
+		{
+			//Debug.Log("Rendering node: " + m_field);
+
+			bool isExpandButtonClicked = false;
+
+			if (m_gui == null || m_field == "") return;
+
+			GUIStyle sty = new GUIStyle(GUI.skin.button);
+			sty.normal.textColor = sty.focused.textColor = Color.white;
+			sty.hover.textColor = sty.active.textColor = Color.yellow;
+			sty.onNormal.textColor = sty.onFocused.textColor = sty.onHover.textColor = sty.onActive.textColor = Color.green;
+			sty.padding = new RectOffset(4, 4, 4, 4);
+
+			GUILayout.BeginVertical(GUILayout.ExpandWidth(true));
+			{
+				GUILayout.BeginHorizontal(GUILayout.ExpandWidth(true));
+				{
+					if (m_isLeaf == false)
+						isExpandButtonClicked = GUILayout.Button((isExpanded ? "<" : ">"), sty, GUILayout.ExpandWidth(true), GUILayout.MaxWidth(30.0f));
+					GUILayout.Label(m_field, sty, GUILayout.ExpandWidth(true));
+				}
+				GUILayout.EndHorizontal();
+
+				if(m_isLeaf == true)
+				{
+					GUILayout.BeginHorizontal(GUILayout.ExpandWidth(true));
+					{ 
+						GUILayout.Label("Min/Max/Step", GUILayout.ExpandWidth(true));
+						m_inputMin = GUILayout.TextField(m_inputMin, GUILayout.Width(50));
+						m_inputMin = Regex.Replace(m_inputMin, @"[^\d+-.]", "");
+						m_inputMax = GUILayout.TextField(m_inputMax, GUILayout.Width(50));
+						m_inputMax = Regex.Replace(m_inputMax, @"[^\d+-.]", "");
+						m_inputStep = GUILayout.TextField(m_inputStep, GUILayout.Width(50));
+						m_inputStep = Regex.Replace(m_inputStep, @"[^\d+.]", "");
+						m_setOnlyOnLaunchPad = GUILayout.Toggle(m_setOnlyOnLaunchPad, " ", GUILayout.Width(30));
+						if (GUILayout.Button("Add", GUILayout.ExpandWidth(true)))
+						{ 
+							// We need to add a module onto that part.
+							string fullFieldName = m_field;
+							Debug.Log(fullFieldName); 
+							ReflectedObjectGUINode curNode = this;
+							while(curNode.m_parent != null)
+							{
+								curNode = curNode.m_parent;
+								fullFieldName = curNode.m_field + "." + fullFieldName;
+								Debug.Log(fullFieldName);
+							}
+
+							AddTweakableParamGUI.GetInstance().AddModuleToSelectedPart(fullFieldName, m_inputMin, m_inputMax, m_inputStep, m_setOnlyOnLaunchPad);
+						}
+					}
+					GUILayout.EndHorizontal();
+				}
+			}
+			GUILayout.EndVertical();
+
+			if (isExpanded)
+			{
+				foreach (ReflectedObjectGUINode subNode in m_subNodes)
+				{
+					subNode.RenderGUI();
+				}
+			}
+
+			if (isExpandButtonClicked)
+				isExpanded = !isExpanded;
+		}
+	}
+}

@@ -125,6 +125,8 @@ namespace TweakableParam
 
 		public void DrawGUI()
 		{
+			GUI.skin = HighLogic.Skin;
+			
 			if (windowUpdated)
 			{
 				WindowPos.width = WindowPos.height = 10;
@@ -260,9 +262,9 @@ namespace TweakableParam
 	class TweakableParamGUIItem
 	{
 		public TweakableParamGUI m_gui = null;
-		public ModuleTweakableParam m_controller = null;
+		public PartModule m_controller = null;
 
-		public TweakableParamGUIItem(TweakableParamGUI gui, ModuleTweakableParam controller)
+		public TweakableParamGUIItem(TweakableParamGUI gui, PartModule controller)
 		{
 			m_gui = gui;
 			m_controller = controller;
@@ -316,20 +318,42 @@ namespace TweakableParam
 			sty.onNormal.textColor = sty.onFocused.textColor = sty.onHover.textColor = sty.onActive.textColor = Color.green;
 			sty.padding = new RectOffset(4, 4, 4, 4);
 
-			GUILayout.Label("Field: " + m_controller.targetField, sty, GUILayout.ExpandWidth(true));
-			GUILayout.Label("Adjustment Range: (" + m_controller.minValue.ToString() + " - " + m_controller.maxValue.ToString() + "), Step: " + m_controller.stepValue.ToString(), sty, GUILayout.ExpandWidth(true));
-			GUILayout.BeginHorizontal(GUILayout.ExpandWidth(true));
+			if (m_controller is ModuleTweakableParam)
 			{
-				isDecreaseButtonClicked = GUILayout.Button("-", sty, GUILayout.ExpandWidth(true), GUILayout.MaxWidth(30.0f));
-				GUILayout.Box(Math.Round(m_controller.tweakedValue, 2).ToString("F2"), sty, GUILayout.ExpandWidth(true));
-				isIncreaseButtonClicked = GUILayout.Button("+", sty, GUILayout.ExpandWidth(true), GUILayout.MaxWidth(30.0f));
-			}
-			GUILayout.EndHorizontal();
+				ModuleTweakableParam controller = m_controller as ModuleTweakableParam;
+				GUILayout.Label("Field: " + controller.targetField, sty, GUILayout.ExpandWidth(true));
+				GUILayout.Label("Adjustment Range: (" + controller.minValue.ToString() + " - " + controller.maxValue.ToString() + "), Step: " + controller.stepValue.ToString(), sty, GUILayout.ExpandWidth(true));
+				GUILayout.BeginHorizontal(GUILayout.ExpandWidth(true));
+				{
+					isDecreaseButtonClicked = GUILayout.Button("-", sty, GUILayout.ExpandWidth(true), GUILayout.MaxWidth(30.0f));
+					GUILayout.Box(Math.Round(controller.tweakedValue, 2).ToString("F2"), sty, GUILayout.ExpandWidth(true));
+					isIncreaseButtonClicked = GUILayout.Button("+", sty, GUILayout.ExpandWidth(true), GUILayout.MaxWidth(30.0f));
+				}
+				GUILayout.EndHorizontal();
 
-			if (isDecreaseButtonClicked)
-				m_controller.DecreaseValue();
-			if (isIncreaseButtonClicked)
-				m_controller.IncreaseValue();
+				if (isDecreaseButtonClicked)
+					controller.DecreaseValue();
+				if (isIncreaseButtonClicked)
+					controller.IncreaseValue();
+			}
+			else if (m_controller is ModuleTweakableSubParam)
+			{
+				ModuleTweakableSubParam controller = m_controller as ModuleTweakableSubParam;
+				GUILayout.Label("Field: " + controller.targetField, sty, GUILayout.ExpandWidth(true));
+				GUILayout.Label("Adjustment Range: (" + controller.minValue.ToString() + " - " + controller.maxValue.ToString() + "), Step: " + controller.stepValue.ToString(), sty, GUILayout.ExpandWidth(true));
+				GUILayout.BeginHorizontal(GUILayout.ExpandWidth(true));
+				{
+					isDecreaseButtonClicked = GUILayout.Button("-", sty, GUILayout.ExpandWidth(true), GUILayout.MaxWidth(30.0f));
+					GUILayout.Box(Math.Round(controller.tweakedValue, 2).ToString("F2"), sty, GUILayout.ExpandWidth(true));
+					isIncreaseButtonClicked = GUILayout.Button("+", sty, GUILayout.ExpandWidth(true), GUILayout.MaxWidth(30.0f));
+				}
+				GUILayout.EndHorizontal();
+
+				if (isDecreaseButtonClicked)
+					controller.DecreaseValue();
+				if (isIncreaseButtonClicked)
+					controller.IncreaseValue();
+			}
 		}
 	}
 }

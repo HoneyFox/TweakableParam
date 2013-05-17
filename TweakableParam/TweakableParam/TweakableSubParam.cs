@@ -7,9 +7,9 @@ using UnityEngine;
 
 namespace TweakableParam
 {
-	public class ModuleTweakableParam : PartModule
+	public class ModuleTweakableSubParam : PartModule
 	{
-		public StartState m_startState = StartState.None;
+		StartState m_startState = StartState.None;
 
 		[KSPField(isPersistant = true)]
 		public string targetField;
@@ -27,44 +27,13 @@ namespace TweakableParam
 		[KSPField(isPersistant = true)]
 		public bool setOnlyOnLaunchPad = false;
 
-		[KSPField(isPersistant = false)]
-		public bool useMultipleParameterLogic = false;
-		[KSPField(isPersistant = true)]
-		public string tweakableParamModulesData = "";
-
-		private int needParseSubModules = -1;
-
-		public List<ModuleTweakableSubParam> tweakableParams = new List<ModuleTweakableSubParam>();
-
-		public override void OnAwake()
-		{
-			//Debug.Log("TweakableParam OnAwake()");
-			if (AddTweakableParamGUI.s_gameObjectInstance == null)
-			{
-				AddTweakableParamGUI.s_gameObjectInstance = GameObject.Find("AddTweakableParamGUI") ?? new GameObject("AddTweakableParamGUI", typeof(AddTweakableParamGUI));
-				AddTweakableParamGUI.s_singleton = AddTweakableParamGUI.s_gameObjectInstance.GetComponent<AddTweakableParamGUI>();
-				if (AddTweakableParamGUI.s_singleton != null)
-					Debug.Log("Initialization of AddTweakableParamGUI complete.");
-			}
-		}
-
 		public override void OnStart(StartState state)
 		{
 			m_startState = state;
-			if (useMultipleParameterLogic == false)
-			{
-				// Single Target Mode.
-				Debug.Log("Trying to get field info of: " + targetField);
-				SetInitialValueOfField(targetField);
-				base.OnStart(state);
-			}
-			else
-			{ 
-				// Multiple Target Mode.
-				Debug.Log("Trying to parse the module data later.");
-				needParseSubModules = 100;
-				base.OnStart(state); 
-			}
+			// Single Target Mode.
+			Debug.Log("Trying to get field info of: " + targetField);
+			SetInitialValueOfField(targetField);
+			base.OnStart(state);
 		}
 
 		public void SetInitialValueOfField(string targetField)
@@ -94,27 +63,6 @@ namespace TweakableParam
 					if (!setOnlyOnLaunchPad || ((int)m_startState & (int)(StartState.PreLaunch)) != 0)
 						fi.SetValue(obj, Convert.ChangeType(tweakedValue, fi.FieldType));
 				}
-			}
-		}
-
-		public void ParseMultipleModules(List<ModuleTweakableSubParam> list, string data)
-		{
-			// Format: <Module(ModuleRCS).thrusterPower,,0.0,5.0,0.1,1>,<.....>,<.....>
-			string firstPass = tweakableParamModulesData.Replace(">,", ">").Replace(">", "");
-			string[] modules = tweakableParamModulesData.Split('<');
-			foreach (string module in modules)
-			{
-				string[] fields = module.Split(',');
-				ModuleTweakableSubParam newModule = (this.part.AddModule("ModuleTweakableSubParam") as ModuleTweakableSubParam);
-				
-				tweakableParams.Add(newModule);
-				
-				newModule.targetField = fields[0];
-				newModule.minValue = Convert.ToSingle(fields[2]);
-				newModule.maxValue = Convert.ToSingle(fields[3]);
-				newModule.stepValue = Convert.ToSingle(fields[4]);
-				newModule.setOnlyOnLaunchPad = (Convert.ToInt32(fields[5]) != 0);
-				newModule.tweakedValue = (fields[1] == "" ? -1 : Convert.ToSingle(fields[1]));
 			}
 		}
 
@@ -198,20 +146,6 @@ namespace TweakableParam
 
 		public override void OnFixedUpdate()
 		{
-			if (needParseSubModules > 0)
-			{
-				needParseSubModules--;
-			}
-			if(needParseSubModules == 0)
-			{
-				Debug.Log("Now we'll parse multiple submodules.");
-				ParseMultipleModules(tweakableParams, tweakableParamModulesData);
-				foreach (ModuleTweakableSubParam module in tweakableParams)
-				{
-					module.OnStart(m_startState);
-				}
-				needParseSubModules--;
-			}
 			base.OnFixedUpdate();
 		}
 	}

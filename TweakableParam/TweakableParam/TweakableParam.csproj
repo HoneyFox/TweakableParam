@@ -46,9 +46,11 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AddTweakableParamGUI.cs" />
     <Compile Include="TweakableParam.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="TweakableParamGUI.cs" />
+    <Compile Include="TweakableSubParam.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
