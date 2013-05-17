@@ -32,9 +32,7 @@ namespace TweakableParam
 		[KSPField(isPersistant = true)]
 		public string tweakableParamModulesData = "";
 
-		private int needParseSubModules = -1;
-
-		public List<ModuleTweakableSubParam> tweakableParams = new List<ModuleTweakableSubParam>();
+		public List<ModuleTweakableParam> tweakableParams = new List<ModuleTweakableParam>();
 
 		public override void OnAwake()
 		{
@@ -61,8 +59,12 @@ namespace TweakableParam
 			else
 			{ 
 				// Multiple Target Mode.
-				Debug.Log("Trying to parse the module data later.");
-				needParseSubModules = 100;
+				Debug.Log("Now we'll parse multiple submodules.");
+				ParseMultipleModules(tweakableParams, tweakableParamModulesData);
+				foreach (ModuleTweakableParam module in tweakableParams)
+				{
+					module.OnStart(m_startState);
+				}
 				base.OnStart(state); 
 			}
 		}
@@ -97,7 +99,7 @@ namespace TweakableParam
 			}
 		}
 
-		public void ParseMultipleModules(List<ModuleTweakableSubParam> list, string data)
+		public void ParseMultipleModules(List<ModuleTweakableParam> list, string data)
 		{
 			// Format: <Module(ModuleRCS).thrusterPower,,0.0,5.0,0.1,1>,<.....>,<.....>
 			string firstPass = tweakableParamModulesData.Replace(">,", ">").Replace(">", "");
@@ -105,7 +107,7 @@ namespace TweakableParam
 			foreach (string module in modules)
 			{
 				string[] fields = module.Split(',');
-				ModuleTweakableSubParam newModule = (this.part.AddModule("ModuleTweakableSubParam") as ModuleTweakableSubParam);
+				ModuleTweakableParam newModule = (this.part.AddModule("ModuleTweakableParam") as ModuleTweakableParam);
 				
 				tweakableParams.Add(newModule);
 				
@@ -198,20 +200,6 @@ namespace TweakableParam
 
 		public override void OnFixedUpdate()
 		{
-			if (needParseSubModules > 0)
-			{
-				needParseSubModules--;
-			}
-			if(needParseSubModules == 0)
-			{
-				Debug.Log("Now we'll parse multiple submodules.");
-				ParseMultipleModules(tweakableParams, tweakableParamModulesData);
-				foreach (ModuleTweakableSubParam module in tweakableParams)
-				{
-					module.OnStart(m_startState);
-				}
-				needParseSubModules--;
-			}
 			base.OnFixedUpdate();
 		}
 	}

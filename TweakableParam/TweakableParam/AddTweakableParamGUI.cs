@@ -231,7 +231,6 @@ namespace TweakableParam
 			float stepValue = Convert.ToSingle(step);
 
 			ModuleTweakableParam targetModule = null;
-			ModuleTweakableSubParam targetSubModule = null;
 			for (int i = 0; i < part.Modules.Count; ++i)
 			{
 				PartModule partModule = part.Modules.GetModule(i);
@@ -247,36 +246,20 @@ namespace TweakableParam
 
 			if (targetModule == null)
 			{
-				for (int i = 0; i < part.Modules.Count; ++i)
-				{
-					PartModule partModule = part.Modules.GetModule(i);
-					if (partModule is ModuleTweakableSubParam)
-					{
-						if ((partModule as ModuleTweakableSubParam).targetField == targetField)
-						{
-							Debug.Log("Already have the submodule.");
-							targetSubModule = partModule as ModuleTweakableSubParam;
-						}
-					}
-				}
-			}
-
-			if (targetModule == null && targetSubModule == null)
-			{
 				Debug.Log("Create a new module.");
-				targetSubModule = (part.AddModule("ModuleTweakableSubParam") as ModuleTweakableSubParam);
+				targetModule = (part.AddModule("ModuleTweakableParam") as ModuleTweakableParam);
 
-				targetSubModule.targetField = targetField;
-				targetSubModule.minValue = minValue;
-				targetSubModule.maxValue = maxValue;
-				targetSubModule.stepValue = stepValue;
-				targetSubModule.setOnlyOnLaunchPad = setOnlyOnLaunchPad;
+				targetModule.targetField = targetField;
+				targetModule.minValue = minValue;
+				targetModule.maxValue = maxValue;
+				targetModule.stepValue = stepValue;
+				targetModule.setOnlyOnLaunchPad = setOnlyOnLaunchPad;
 
-				targetSubModule.tweakedValue = maxValue;
+				targetModule.tweakedValue = maxValue;
 
-				targetSubModule.OnStart(PartModule.StartState.Editor);
+				targetModule.OnStart(PartModule.StartState.Editor);
 
-				module.tweakableParams.Add(targetSubModule);
+				module.tweakableParams.Add(targetModule);
 				module.tweakableParamModulesData = module.tweakableParamModulesData.TrimEnd(',') +
 					"<" +
 					targetModule.targetField + "," +
@@ -287,7 +270,7 @@ namespace TweakableParam
 					(targetModule.setOnlyOnLaunchPad ? "1" : "0") + "," +
 					">,";
 			}
-			else if(targetModule != null)
+			else
 			{
 				targetModule.minValue = minValue;
 				targetModule.maxValue = maxValue;
@@ -297,17 +280,6 @@ namespace TweakableParam
 					targetModule.tweakedValue = maxValue;
 				else if (targetModule.tweakedValue < minValue)
 					targetModule.tweakedValue = minValue;
-			}
-			else if (targetSubModule != null)
-			{
-				targetSubModule.minValue = minValue;
-				targetSubModule.maxValue = maxValue;
-				targetSubModule.stepValue = stepValue;
-
-				if (targetSubModule.tweakedValue > maxValue)
-					targetSubModule.tweakedValue = maxValue;
-				else if (targetSubModule.tweakedValue < minValue)
-					targetSubModule.tweakedValue = minValue;
 			}
 		}
 

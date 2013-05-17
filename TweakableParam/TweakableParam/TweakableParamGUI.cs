@@ -336,9 +336,9 @@ namespace TweakableParam
 				if (isIncreaseButtonClicked)
 					controller.IncreaseValue();
 			}
-			else if (m_controller is ModuleTweakableSubParam)
+			else if (m_controller is ModuleTweakableParam)
 			{
-				ModuleTweakableSubParam controller = m_controller as ModuleTweakableSubParam;
+				ModuleTweakableParam controller = m_controller as ModuleTweakableParam;
 				GUILayout.Label("Field: " + controller.targetField, sty, GUILayout.ExpandWidth(true));
 				GUILayout.Label("Adjustment Range: (" + controller.minValue.ToString() + " - " + controller.maxValue.ToString() + "), Step: " + controller.stepValue.ToString(), sty, GUILayout.ExpandWidth(true));
 				GUILayout.BeginHorizontal(GUILayout.ExpandWidth(true));
