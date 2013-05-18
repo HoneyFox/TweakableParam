@@ -32,7 +32,9 @@ namespace TweakableParam
 		[KSPField(isPersistant = true)]
 		public string tweakableParamModulesData = "";
 
-		public List<ModuleTweakableParam> tweakableParams = new List<ModuleTweakableParam>();
+		private bool needParseSubModules = false;
+
+		public List<ModuleTweakableSubParam> tweakableParams = new List<ModuleTweakableSubParam>();
 
 		public override void OnAwake()
 		{
@@ -60,12 +62,19 @@ namespace TweakableParam
 			{ 
 				// Multiple Target Mode.
 				Debug.Log("Now we'll parse multiple submodules.");
-				ParseMultipleModules(tweakableParams, tweakableParamModulesData);
-				foreach (ModuleTweakableParam module in tweakableParams)
+				if (m_startState == StartState.Editor)
 				{
-					module.OnStart(m_startState);
+					ParseMultipleModules(tweakableParams, tweakableParamModulesData);
+					foreach (ModuleTweakableSubParam module in tweakableParams)
+					{
+						module.OnStart(m_startState);
+					}
 				}
-				base.OnStart(state); 
+				else
+				{
+					needParseSubModules = true;
+				}
+				base.OnStart(state);
 			}
 		}
 
@@ -99,24 +108,68 @@ namespace TweakableParam
 			}
 		}
 
-		public void ParseMultipleModules(List<ModuleTweakableParam> list, string data)
+		public void ParseMultipleModules(List<ModuleTweakableSubParam> list, string data)
 		{
 			// Format: <Module(ModuleRCS).thrusterPower,,0.0,5.0,0.1,1>,<.....>,<.....>
-			string firstPass = tweakableParamModulesData.Replace(">,", ">").Replace(">", "");
-			string[] modules = tweakableParamModulesData.Split('<');
+			Debug.Log(data);
+			string firstPass = data.Replace(">,", ">").Replace(">", "");
+			Debug.Log(firstPass);
+			string[] modules = firstPass.Split(new char[]{'<'}, StringSplitOptions.RemoveEmptyEntries);
 			foreach (string module in modules)
 			{
-				string[] fields = module.Split(',');
-				ModuleTweakableParam newModule = (this.part.AddModule("ModuleTweakableParam") as ModuleTweakableParam);
-				
-				tweakableParams.Add(newModule);
-				
-				newModule.targetField = fields[0];
-				newModule.minValue = Convert.ToSingle(fields[2]);
-				newModule.maxValue = Convert.ToSingle(fields[3]);
-				newModule.stepValue = Convert.ToSingle(fields[4]);
-				newModule.setOnlyOnLaunchPad = (Convert.ToInt32(fields[5]) != 0);
-				newModule.tweakedValue = (fields[1] == "" ? -1 : Convert.ToSingle(fields[1]));
+				Debug.Log(module);
+				string[] fields = module.Split(new char[]{','}, StringSplitOptions.None);
+
+				if (m_startState == StartState.Editor)
+				{
+					ModuleTweakableSubParam newModule = new ModuleTweakableSubParam();
+					newModule.parentModule = this;
+					tweakableParams.Add(newModule);
+
+					newModule.targetField = fields[0];
+					newModule.minValue = Convert.ToSingle(fields[2]);
+					newModule.maxValue = Convert.ToSingle(fields[3]);
+					newModule.stepValue = Convert.ToSingle(fields[4]);
+					newModule.setOnlyOnLaunchPad = (Convert.ToInt32(fields[5]) != 0);
+					newModule.tweakedValue = (fields[1] == "" ? -1 : Convert.ToSingle(fields[1]));
+				}
+				else
+				{
+					ModuleTweakableParam newModule = (this.part.AddModule("ModuleTweakableParam") as ModuleTweakableParam);
+					newModule.targetField = fields[0];
+					newModule.minValue = Convert.ToSingle(fields[2]);
+					newModule.maxValue = Convert.ToSingle(fields[3]);
+					newModule.stepValue = Convert.ToSingle(fields[4]);
+					newModule.setOnlyOnLaunchPad = (Convert.ToInt32(fields[5]) != 0);
+					newModule.tweakedValue = (fields[1] == "" ? -1 : Convert.ToSingle(fields[1]));
+					newModule.OnStart(m_startState);
+				}
+			}
+		}
+
+		public void UpdateTweakedValue(ModuleTweakableSubParam subModule)
+		{
+			for (int i = 0; i < tweakableParams.Count; ++i)
+			{
+				if (tweakableParams[i] == subModule)
+				{
+					int curIdx = -1;
+					int curModuleIdx = -1;
+					while (curModuleIdx != i)
+					{
+						curIdx = tweakableParamModulesData.IndexOf("<", curIdx + 1);
+						curModuleIdx++;
+					}
+					curIdx++;
+					int endIdx = tweakableParamModulesData.IndexOf(">", curIdx);
+					string moduleSection = tweakableParamModulesData.Substring(curIdx, endIdx - curIdx);
+					int curSubIdx = -1;
+					curSubIdx = moduleSection.IndexOf(",", curSubIdx + 1);
+					curSubIdx++;
+					int endSubIdx = moduleSection.IndexOf(",", curSubIdx);
+					moduleSection = moduleSection.Substring(0, curSubIdx) + subModule.tweakedValue.ToString("F2") + moduleSection.Substring(endSubIdx);
+					tweakableParamModulesData = tweakableParamModulesData.Substring(0, curIdx) + moduleSection + tweakableParamModulesData.Substring(endIdx);
+				}
 			}
 		}
 
@@ -198,9 +251,18 @@ namespace TweakableParam
 			if (tweakedValue > maxValue) tweakedValue = maxValue;
 		}
 
-		public override void OnFixedUpdate()
+		public override void OnUpdate()
 		{
-			base.OnFixedUpdate();
+			if (useMultipleParameterLogic == true)
+			{
+				if (needParseSubModules)
+				{
+					Debug.Log("Need to initiate these submodules.");
+					ParseMultipleModules(tweakableParams, tweakableParamModulesData);
+					needParseSubModules = false;
+				}
+			}
+			base.OnUpdate();
 		}
 	}
 }

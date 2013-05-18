@@ -31,9 +31,16 @@ namespace TweakableParam
 			if (m_guiItems.Contains(item)) return;
 			m_guiItems.Add(item);
 
+			Part controllerPart = null;
+			if (item.m_controller is ModuleTweakableParam)
+				controllerPart = (item.m_controller as ModuleTweakableParam).part;
+			else if (item.m_controller is ModuleTweakableSubParam)
+				controllerPart = (item.m_controller as ModuleTweakableSubParam).parentModule.part; 
+			
 			foreach (TweakableParamGUIGroup group in m_guiGroups)
 			{
-				if (group.m_part == item.m_controller.part)
+				
+				if (group.m_part == controllerPart)
 				{
 					// Already has a group of the same part.
 					group.m_guiItems.Add(item);
@@ -41,7 +48,7 @@ namespace TweakableParam
 				}
 			}
 			
-			TweakableParamGUIGroup newGroup = new TweakableParamGUIGroup(this, item.m_controller.part);
+			TweakableParamGUIGroup newGroup = new TweakableParamGUIGroup(this, controllerPart);
 			m_guiGroups.Add(newGroup);
 			newGroup.m_guiItems.Add(item);
 		}
@@ -53,9 +60,15 @@ namespace TweakableParam
 
 			if (m_guiItems.Count == 0) DeleteGUI();
 
+			Part controllerPart = null;
+			if (item.m_controller is ModuleTweakableParam)
+				controllerPart = (item.m_controller as ModuleTweakableParam).part;
+			else if (item.m_controller is ModuleTweakableSubParam)
+				controllerPart = (item.m_controller as ModuleTweakableSubParam).parentModule.part;
+
 			foreach (TweakableParamGUIGroup group in m_guiGroups)
 			{
-				if (group.m_part == item.m_controller.part)
+				if (group.m_part == controllerPart)
 				{
 					// Already has a group of the same part.
 					group.m_guiItems.Remove(item);
@@ -262,9 +275,9 @@ namespace TweakableParam
 	class TweakableParamGUIItem
 	{
 		public TweakableParamGUI m_gui = null;
-		public PartModule m_controller = null;
+		public object m_controller = null;
 
-		public TweakableParamGUIItem(TweakableParamGUI gui, PartModule controller)
+		public TweakableParamGUIItem(TweakableParamGUI gui, object controller)
 		{
 			m_gui = gui;
 			m_controller = controller;
@@ -287,8 +300,16 @@ namespace TweakableParam
 			if (this.m_controller == null)
 				return false;
 
-			if (this.m_controller.part == null)
-				return false;
+			if (this.m_controller is ModuleTweakableParam)
+			{
+				if ((this.m_controller as ModuleTweakableParam).part == null)
+					return false;
+			}
+			else if (this.m_controller is ModuleTweakableSubParam)
+			{
+				if ((this.m_controller as ModuleTweakableSubParam).parentModule.part == null)
+					return false;
+			}
 
 			return true;
 		}
@@ -297,7 +318,12 @@ namespace TweakableParam
 		{
 			if (CheckValid() == false) return false;
 
-			if (this.m_controller.part.localRoot == EditorLogic.startPod)
+			Part part = null;
+			if (this.m_controller is ModuleTweakableParam)
+				part = (this.m_controller as ModuleTweakableParam).part;
+			else if (this.m_controller is ModuleTweakableSubParam)
+				part = (this.m_controller as ModuleTweakableSubParam).parentModule.part;
+			if (part.localRoot == EditorLogic.startPod)
 			{
 				return true;
 			}
@@ -311,7 +337,9 @@ namespace TweakableParam
 		{
 			bool isIncreaseButtonClicked = false;
 			bool isDecreaseButtonClicked = false;
-			
+			bool isIncreaseRepeatButtonClicked = false;
+			bool isDecreaseRepeatButtonClicked = false;
+
 			GUIStyle sty = new GUIStyle(GUI.skin.button);
 			sty.normal.textColor = sty.focused.textColor = Color.white;
 			sty.hover.textColor = sty.active.textColor = Color.yellow;
@@ -325,33 +353,37 @@ namespace TweakableParam
 				GUILayout.Label("Adjustment Range: (" + controller.minValue.ToString() + " - " + controller.maxValue.ToString() + "), Step: " + controller.stepValue.ToString(), sty, GUILayout.ExpandWidth(true));
 				GUILayout.BeginHorizontal(GUILayout.ExpandWidth(true));
 				{
+					isDecreaseRepeatButtonClicked = GUILayout.RepeatButton("--", sty, GUILayout.ExpandWidth(true), GUILayout.MaxWidth(35.0f));
 					isDecreaseButtonClicked = GUILayout.Button("-", sty, GUILayout.ExpandWidth(true), GUILayout.MaxWidth(30.0f));
 					GUILayout.Box(Math.Round(controller.tweakedValue, 2).ToString("F2"), sty, GUILayout.ExpandWidth(true));
 					isIncreaseButtonClicked = GUILayout.Button("+", sty, GUILayout.ExpandWidth(true), GUILayout.MaxWidth(30.0f));
+					isIncreaseRepeatButtonClicked = GUILayout.RepeatButton("++", sty, GUILayout.ExpandWidth(true), GUILayout.MaxWidth(35.0f));
 				}
 				GUILayout.EndHorizontal();
 
-				if (isDecreaseButtonClicked)
+				if (isDecreaseButtonClicked || isDecreaseRepeatButtonClicked)
 					controller.DecreaseValue();
-				if (isIncreaseButtonClicked)
+				if (isIncreaseButtonClicked || isIncreaseRepeatButtonClicked)
 					controller.IncreaseValue();
 			}
-			else if (m_controller is ModuleTweakableParam)
+			else
 			{
-				ModuleTweakableParam controller = m_controller as ModuleTweakableParam;
+				ModuleTweakableSubParam controller = m_controller as ModuleTweakableSubParam;
 				GUILayout.Label("Field: " + controller.targetField, sty, GUILayout.ExpandWidth(true));
 				GUILayout.Label("Adjustment Range: (" + controller.minValue.ToString() + " - " + controller.maxValue.ToString() + "), Step: " + controller.stepValue.ToString(), sty, GUILayout.ExpandWidth(true));
 				GUILayout.BeginHorizontal(GUILayout.ExpandWidth(true));
 				{
+					isDecreaseRepeatButtonClicked = GUILayout.RepeatButton("--", sty, GUILayout.ExpandWidth(true), GUILayout.MaxWidth(35.0f));
 					isDecreaseButtonClicked = GUILayout.Button("-", sty, GUILayout.ExpandWidth(true), GUILayout.MaxWidth(30.0f));
 					GUILayout.Box(Math.Round(controller.tweakedValue, 2).ToString("F2"), sty, GUILayout.ExpandWidth(true));
 					isIncreaseButtonClicked = GUILayout.Button("+", sty, GUILayout.ExpandWidth(true), GUILayout.MaxWidth(30.0f));
+					isIncreaseRepeatButtonClicked = GUILayout.RepeatButton("++", sty, GUILayout.ExpandWidth(true), GUILayout.MaxWidth(35.0f));
 				}
 				GUILayout.EndHorizontal();
 
-				if (isDecreaseButtonClicked)
+				if (isDecreaseButtonClicked || isDecreaseRepeatButtonClicked)
 					controller.DecreaseValue();
-				if (isIncreaseButtonClicked)
+				if (isIncreaseButtonClicked || isIncreaseRepeatButtonClicked)
 					controller.IncreaseValue();
 			}
 		}

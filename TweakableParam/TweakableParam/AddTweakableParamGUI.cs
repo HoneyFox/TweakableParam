@@ -43,8 +43,23 @@ namespace TweakableParam
 						if (m_selectedPart != null)
 						{
 							//Debug.Log("We've selected a part.");
+							bool suitableModuleFound = false;
+							for (int i = 0; i < m_selectedPart.Modules.Count; ++i)
+							{
+								PartModule module = m_selectedPart.Modules.GetModule(i);
+								if (module is ModuleTweakableParam)
+								{
+									if ((module as ModuleTweakableParam).useMultipleParameterLogic == true)
+									{
+										suitableModuleFound = true;
+										break;
+									}
+								}
+							}
+
 							ClearGUINode();
-							GenerateGUINodes();
+							if (suitableModuleFound)
+								GenerateGUINodes();
 						}
 						else
 						{
@@ -230,24 +245,21 @@ namespace TweakableParam
 			float maxValue = Convert.ToSingle(max);
 			float stepValue = Convert.ToSingle(step);
 
-			ModuleTweakableParam targetModule = null;
-			for (int i = 0; i < part.Modules.Count; ++i)
+			ModuleTweakableSubParam targetModule = null;
+			for (int i = 0; i < module.tweakableParams.Count; ++i)
 			{
-				PartModule partModule = part.Modules.GetModule(i);
-				if (partModule is ModuleTweakableParam)
+				if (module.tweakableParams[i].targetField == targetField)
 				{
-					if ((partModule as ModuleTweakableParam).targetField == targetField)
-					{
-						Debug.Log("Already have the module.");
-						targetModule = partModule as ModuleTweakableParam;
-					}
+					Debug.Log("Already have the module.");
+					targetModule = module.tweakableParams[i];
 				}
 			}
 
 			if (targetModule == null)
 			{
 				Debug.Log("Create a new module.");
-				targetModule = (part.AddModule("ModuleTweakableParam") as ModuleTweakableParam);
+				targetModule = new ModuleTweakableSubParam();
+				targetModule.parentModule = module;
 
 				targetModule.targetField = targetField;
 				targetModule.minValue = minValue;
@@ -260,14 +272,15 @@ namespace TweakableParam
 				targetModule.OnStart(PartModule.StartState.Editor);
 
 				module.tweakableParams.Add(targetModule);
-				module.tweakableParamModulesData = module.tweakableParamModulesData.TrimEnd(',') +
-					"<" +
+				if (module.tweakableParamModulesData != "")
+					module.tweakableParamModulesData = module.tweakableParamModulesData.TrimEnd(',') + ",";
+				module.tweakableParamModulesData += "<" +
 					targetModule.targetField + "," +
-					targetModule.stepValue.ToString("F2") + "," +
+					targetModule.tweakedValue.ToString("F2") + "," +
 					targetModule.minValue.ToString("F2") + "," +
 					targetModule.maxValue.ToString("F2") + "," +
 					targetModule.stepValue.ToString("F2") + "," +
-					(targetModule.setOnlyOnLaunchPad ? "1" : "0") + "," +
+					(targetModule.setOnlyOnLaunchPad ? "1" : "0") +
 					">,";
 			}
 			else
