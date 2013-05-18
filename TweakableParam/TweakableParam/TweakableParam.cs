@@ -32,8 +32,6 @@ namespace TweakableParam
 		[KSPField(isPersistant = true)]
 		public string tweakableParamModulesData = "";
 
-		private bool needParseSubModules = false;
-
 		public List<ModuleTweakableSubParam> tweakableParams = new List<ModuleTweakableSubParam>();
 
 		public override void OnAwake()
@@ -62,17 +60,10 @@ namespace TweakableParam
 			{ 
 				// Multiple Target Mode.
 				Debug.Log("Now we'll parse multiple submodules.");
-				if (m_startState == StartState.Editor)
+				ParseMultipleModules(tweakableParams, tweakableParamModulesData);
+				foreach (ModuleTweakableSubParam module in tweakableParams)
 				{
-					ParseMultipleModules(tweakableParams, tweakableParamModulesData);
-					foreach (ModuleTweakableSubParam module in tweakableParams)
-					{
-						module.OnStart(m_startState);
-					}
-				}
-				else
-				{
-					needParseSubModules = true;
+					module.OnStart(m_startState);
 				}
 				base.OnStart(state);
 			}
@@ -120,7 +111,7 @@ namespace TweakableParam
 				Debug.Log(module);
 				string[] fields = module.Split(new char[]{','}, StringSplitOptions.None);
 
-				if (m_startState == StartState.Editor)
+				//if (m_startState == StartState.Editor)
 				{
 					ModuleTweakableSubParam newModule = new ModuleTweakableSubParam();
 					newModule.parentModule = this;
@@ -132,18 +123,19 @@ namespace TweakableParam
 					newModule.stepValue = Convert.ToSingle(fields[4]);
 					newModule.setOnlyOnLaunchPad = (Convert.ToInt32(fields[5]) != 0);
 					newModule.tweakedValue = (fields[1] == "" ? -1 : Convert.ToSingle(fields[1]));
+
 				}
-				else
-				{
-					ModuleTweakableParam newModule = (this.part.AddModule("ModuleTweakableParam") as ModuleTweakableParam);
-					newModule.targetField = fields[0];
-					newModule.minValue = Convert.ToSingle(fields[2]);
-					newModule.maxValue = Convert.ToSingle(fields[3]);
-					newModule.stepValue = Convert.ToSingle(fields[4]);
-					newModule.setOnlyOnLaunchPad = (Convert.ToInt32(fields[5]) != 0);
-					newModule.tweakedValue = (fields[1] == "" ? -1 : Convert.ToSingle(fields[1]));
-					newModule.OnStart(m_startState);
-				}
+				//else
+				//{
+				//    ModuleTweakableParam newModule = (this.part.AddModule("ModuleTweakableParam") as ModuleTweakableParam);
+				//    newModule.targetField = fields[0];
+				//    newModule.minValue = Convert.ToSingle(fields[2]);
+				//    newModule.maxValue = Convert.ToSingle(fields[3]);
+				//    newModule.stepValue = Convert.ToSingle(fields[4]);
+				//    newModule.setOnlyOnLaunchPad = (Convert.ToInt32(fields[5]) != 0);
+				//    newModule.tweakedValue = (fields[1] == "" ? -1 : Convert.ToSingle(fields[1]));
+				//    newModule.OnStart(m_startState);
+				//}
 			}
 		}
 
@@ -249,20 +241,6 @@ namespace TweakableParam
 			tweakedValue += stepValue;
 			if (tweakedValue < minValue) tweakedValue = minValue;
 			if (tweakedValue > maxValue) tweakedValue = maxValue;
-		}
-
-		public override void OnUpdate()
-		{
-			if (useMultipleParameterLogic == true)
-			{
-				if (needParseSubModules)
-				{
-					Debug.Log("Need to initiate these submodules.");
-					ParseMultipleModules(tweakableParams, tweakableParamModulesData);
-					needParseSubModules = false;
-				}
-			}
-			base.OnUpdate();
 		}
 	}
 }

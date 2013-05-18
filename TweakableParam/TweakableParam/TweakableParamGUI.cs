@@ -20,7 +20,7 @@ namespace TweakableParam
 		Vector2 verticalScroll = Vector2.zero;
 		#endregion
 
-		private List<TweakableParamGUIGroup> m_guiGroups = new List<TweakableParamGUIGroup>();
+		public List<TweakableParamGUIGroup> m_guiGroups = new List<TweakableParamGUIGroup>();
 		private List<TweakableParamGUIItem> m_guiItems = new List<TweakableParamGUIItem>();
 
 		public void RegisterGUIItem(TweakableParamGUIItem item)
@@ -218,7 +218,7 @@ namespace TweakableParam
 		public List<TweakableParamGUIItem> m_guiItems = new List<TweakableParamGUIItem>();
 
 		#region GUI Related
-		bool isExpanded = false;
+		public bool isExpanded = false;
 		#endregion
 
 		public TweakableParamGUIGroup(TweakableParamGUI gui, Part part)
@@ -268,6 +268,21 @@ namespace TweakableParam
 
 			if (isExpandButtonClicked)
 				isExpanded = !isExpanded;
+			if (isExpanded == true)
+			{
+				foreach (TweakableParamGUIGroup group in m_gui.m_guiGroups)
+				{
+					if (group != this)
+					{
+						group.isExpanded = false;
+						if (group.m_part.highlightType == Part.HighlightType.AlwaysOn)
+						{
+							group.m_part.SetHighlightType(Part.HighlightType.OnMouseOver);
+							group.m_part.SetHighlight(false);
+						}
+					}
+				}
+			}
 		}
 
 	}
