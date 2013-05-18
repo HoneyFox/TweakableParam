@@ -233,6 +233,31 @@ namespace TweakableParam
 					}
 				}
 			}
+
+			Debug.Log("Now for all these symmetric counterparts");
+			for (int h = 0; h < m_selectedPart.symmetryCounterparts.Count; ++h)
+			{
+				for (int i = 0; i < m_selectedPart.symmetryCounterparts[h].Modules.Count; ++i)
+				{
+					if (m_selectedPart.symmetryCounterparts[h].Modules.GetModule(i) is ModuleTweakableParam)
+					{
+						Debug.Log("Find a ModuleTweakableParam.");
+						ModuleTweakableParam module = m_selectedPart.symmetryCounterparts[h].Modules.GetModule(i) as ModuleTweakableParam;
+						if (module.useMultipleParameterLogic)
+						{
+							Debug.Log("Got it.");
+							// We've found the one.
+							AddModuleToSelectedPart(module, module.m_startState, module.part, targetField, min, max, step, setOnlyOnLaunchPad);
+							break;
+						}
+						else
+						{
+							Debug.Log("It's using single parameter mode.");
+						}
+					}
+				}
+			}
+
 		}
 
 		public void AddModuleToSelectedPart(ModuleTweakableParam module, PartModule.StartState state, Part part, string targetField, string min, string max, string step, bool setOnlyOnLaunchPad)

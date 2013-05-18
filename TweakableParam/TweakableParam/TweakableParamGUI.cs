@@ -242,7 +242,10 @@ namespace TweakableParam
 			GUILayout.BeginHorizontal(GUILayout.ExpandWidth(true));
 			{
 				isExpandButtonClicked = GUILayout.Button((isExpanded ? "<" : ">"), sty, GUILayout.ExpandWidth(true), GUILayout.MaxWidth(30.0f));
-				GUILayout.Label(m_part.partInfo.title, sty, GUILayout.ExpandWidth(true));
+				if(m_part.partInfo.title.Length > 30)
+					GUILayout.Label(m_part.partInfo.title.Substring(0, 27) + "..." , sty, GUILayout.ExpandWidth(true));
+				else
+					GUILayout.Label(m_part.partInfo.title, sty, GUILayout.ExpandWidth(true));
 			}
 			GUILayout.EndHorizontal();
 
