@@ -159,7 +159,7 @@ namespace TweakableParam
 					curSubIdx = moduleSection.IndexOf(",", curSubIdx + 1);
 					curSubIdx++;
 					int endSubIdx = moduleSection.IndexOf(",", curSubIdx);
-					moduleSection = moduleSection.Substring(0, curSubIdx) + subModule.tweakedValue.ToString("F2") + moduleSection.Substring(endSubIdx);
+					moduleSection = moduleSection.Substring(0, curSubIdx) + subModule.tweakedValue.ToString("F4") + moduleSection.Substring(endSubIdx);
 					tweakableParamModulesData = tweakableParamModulesData.Substring(0, curIdx) + moduleSection + tweakableParamModulesData.Substring(endIdx);
 				}
 			}

@@ -373,7 +373,7 @@ namespace TweakableParam
 				{
 					isDecreaseRepeatButtonClicked = GUILayout.RepeatButton("--", sty, GUILayout.ExpandWidth(true), GUILayout.MaxWidth(35.0f));
 					isDecreaseButtonClicked = GUILayout.Button("-", sty, GUILayout.ExpandWidth(true), GUILayout.MaxWidth(30.0f));
-					GUILayout.Box(Math.Round(controller.tweakedValue, 2).ToString("F2"), sty, GUILayout.ExpandWidth(true));
+					GUILayout.Box(Math.Round(controller.tweakedValue, 4).ToString("F4"), sty, GUILayout.ExpandWidth(true));
 					isIncreaseButtonClicked = GUILayout.Button("+", sty, GUILayout.ExpandWidth(true), GUILayout.MaxWidth(30.0f));
 					isIncreaseRepeatButtonClicked = GUILayout.RepeatButton("++", sty, GUILayout.ExpandWidth(true), GUILayout.MaxWidth(35.0f));
 				}
@@ -393,7 +393,7 @@ namespace TweakableParam
 				{
 					isDecreaseRepeatButtonClicked = GUILayout.RepeatButton("--", sty, GUILayout.ExpandWidth(true), GUILayout.MaxWidth(35.0f));
 					isDecreaseButtonClicked = GUILayout.Button("-", sty, GUILayout.ExpandWidth(true), GUILayout.MaxWidth(30.0f));
-					GUILayout.Box(Math.Round(controller.tweakedValue, 2).ToString("F2"), sty, GUILayout.ExpandWidth(true));
+					GUILayout.Box(Math.Round(controller.tweakedValue, 4).ToString("F4"), sty, GUILayout.ExpandWidth(true));
 					isIncreaseButtonClicked = GUILayout.Button("+", sty, GUILayout.ExpandWidth(true), GUILayout.MaxWidth(30.0f));
 					isIncreaseRepeatButtonClicked = GUILayout.RepeatButton("++", sty, GUILayout.ExpandWidth(true), GUILayout.MaxWidth(35.0f));
 				}

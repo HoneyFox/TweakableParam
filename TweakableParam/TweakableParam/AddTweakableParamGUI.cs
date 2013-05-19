@@ -271,12 +271,14 @@ namespace TweakableParam
 			float stepValue = Convert.ToSingle(step);
 
 			ModuleTweakableSubParam targetModule = null;
+			int index = -1;
 			for (int i = 0; i < module.tweakableParams.Count; ++i)
 			{
 				if (module.tweakableParams[i].targetField == targetField)
 				{
 					Debug.Log("Already have the module.");
 					targetModule = module.tweakableParams[i];
+					index = i;
 				}
 			}
 
@@ -301,10 +303,10 @@ namespace TweakableParam
 					module.tweakableParamModulesData = module.tweakableParamModulesData.TrimEnd(',') + ",";
 				module.tweakableParamModulesData += "<" +
 					targetModule.targetField + "," +
-					targetModule.tweakedValue.ToString("F2") + "," +
-					targetModule.minValue.ToString("F2") + "," +
-					targetModule.maxValue.ToString("F2") + "," +
-					targetModule.stepValue.ToString("F2") + "," +
+					targetModule.tweakedValue.ToString("F4") + "," +
+					targetModule.minValue.ToString("F4") + "," +
+					targetModule.maxValue.ToString("F4") + "," +
+					targetModule.stepValue.ToString("F4") + "," +
 					(targetModule.setOnlyOnLaunchPad ? "1" : "0") +
 					">,";
 			}
@@ -318,6 +320,32 @@ namespace TweakableParam
 					targetModule.tweakedValue = maxValue;
 				else if (targetModule.tweakedValue < minValue)
 					targetModule.tweakedValue = minValue;
+
+				int curIdx = -1;
+				int curPos = -1;
+				while (curIdx != index)
+				{
+					curPos = module.tweakableParamModulesData.IndexOf("<", curPos + 1);
+					curIdx++;
+					if (curPos == -1)
+						break;
+				}
+
+				if (curIdx == index)
+				{
+					int endPos = module.tweakableParamModulesData.IndexOf(">", curPos) + 1;
+					module.tweakableParamModulesData = 
+						module.tweakableParamModulesData.Substring(0, curPos) +
+						"<" +
+						targetModule.targetField + "," +
+						targetModule.tweakedValue.ToString("F4") + "," +
+						targetModule.minValue.ToString("F4") + "," +
+						targetModule.maxValue.ToString("F4") + "," +
+						targetModule.stepValue.ToString("F4") + "," +
+						(targetModule.setOnlyOnLaunchPad ? "1" : "0") + 
+						">"
+						+ module.tweakableParamModulesData.Substring(endPos);
+				}
 			}
 		}
 
