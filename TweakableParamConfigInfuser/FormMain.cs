@@ -58,34 +58,68 @@ namespace TweakableParamConfigInfuser
 			string[] partFolders = Directory.GetDirectories(lblPath.Text);
 			foreach (string partFolder in partFolders)
 			{
-				string partCfgFilePath = Path.Combine(lblPath.Text, Path.GetFileNameWithoutExtension(partFolder), "part.cfg");
-				if(File.Exists(partCfgFilePath))
+				string[] partCfgFilePaths = Directory.GetFiles(Path.Combine(lblPath.Text, Path.GetFileName(partFolder)), "*.cfg", SearchOption.AllDirectories);
+				foreach (string partCfgFilePath in partCfgFilePaths)
 				{
-					string partCfgFileContent = File.ReadAllText(partCfgFilePath);
-					int useMultipleLogicIndex = partCfgFileContent.IndexOf("useMultipleParameterLogic", 0);
-					if (useMultipleLogicIndex == -1)
+					if (File.Exists(partCfgFilePath))
 					{
-						chkBoxList.Items.Add(Path.GetFileNameWithoutExtension(partFolder), true);
-					}
-					else
-					{
-						int trueIndex = partCfgFileContent.IndexOf("true", useMultipleLogicIndex, StringComparison.CurrentCultureIgnoreCase);
-						int falseIndex = partCfgFileContent.IndexOf("false", useMultipleLogicIndex, StringComparison.CurrentCultureIgnoreCase);
-						if (trueIndex == -1)
+						string partCfgFileContent = File.ReadAllText(partCfgFilePath);
+						int partStr = partCfgFileContent.IndexOf("PART", StringComparison.CurrentCulture);
+						int bracketPos = -1;
+						if (partStr >= 0)
 						{
-							chkBoxList.Items.Add(Path.GetFileNameWithoutExtension(partFolder), false);
+							bracketPos = partCfgFileContent.IndexOf("{", partStr);
+							string mid = partCfgFileContent.Substring(partStr + 4, bracketPos - partStr - 4);
+							if (mid.Trim() != "")
+								partStr = -1;
 						}
-						else if (falseIndex == -1)
+						int internalStr = partCfgFileContent.IndexOf("INTERNAL", StringComparison.CurrentCulture);
+						if (internalStr >= 0)
 						{
-							continue;
+							bracketPos = partCfgFileContent.IndexOf("{", internalStr);
+							string mid = partCfgFileContent.Substring(internalStr + 8, bracketPos - internalStr - 8);
+							if (mid.Trim() != "")
+								internalStr = -1;
 						}
-						else if (trueIndex < falseIndex)
+						int resourceStr = partCfgFileContent.IndexOf("RESOURCE_DEFINITION", StringComparison.CurrentCulture);
+						if (resourceStr >= 0)
 						{
-							continue;
+							bracketPos = partCfgFileContent.IndexOf("{", resourceStr);
+							string mid = partCfgFileContent.Substring(resourceStr + 19, bracketPos - resourceStr - 19);
+							if (mid.Trim() != "")
+								resourceStr = -1;
 						}
-						else
+
+						if (partStr == -1 && internalStr == -1 && resourceStr == -1 && partCfgFilePath.Contains("Parts") || partStr >= 0)
 						{
-							chkBoxList.Items.Add(Path.GetFileNameWithoutExtension(partFolder), false);
+							string relativePath = partCfgFilePath.Replace(lblPath.Text + "\\", "");
+
+							int useMultipleLogicIndex = partCfgFileContent.IndexOf("useMultipleParameterLogic", 0);
+							if (useMultipleLogicIndex == -1)
+							{
+								chkBoxList.Items.Add(relativePath, true);
+							}
+							else
+							{
+								int trueIndex = partCfgFileContent.IndexOf("true", useMultipleLogicIndex, StringComparison.CurrentCultureIgnoreCase);
+								int falseIndex = partCfgFileContent.IndexOf("false", useMultipleLogicIndex, StringComparison.CurrentCultureIgnoreCase);
+								if (trueIndex == -1)
+								{
+									chkBoxList.Items.Add(relativePath, false);
+								}
+								else if (falseIndex == -1)
+								{
+									continue;
+								}
+								else if (trueIndex < falseIndex)
+								{
+									continue;
+								}
+								else
+								{
+									chkBoxList.Items.Add(relativePath, false);
+								}
+							}
 						}
 					}
 				}
@@ -105,21 +139,39 @@ namespace TweakableParamConfigInfuser
 		{
 			foreach (object o in chkBoxList.CheckedItems)
 			{
-				string folderName = o as string;
-				string partCfgFilePath = Path.Combine(lblPath.Text, folderName, "part.cfg");
+				string relativePath = o as string;
+				string partCfgFilePath = Path.Combine(lblPath.Text, relativePath);
 				if (File.Exists(partCfgFilePath))
 				{
 					string partCfgFileContent = File.ReadAllText(partCfgFilePath);
 					int useMultipleLogicIndex = partCfgFileContent.IndexOf("useMultipleParameterLogic", 0);
 					if (useMultipleLogicIndex == -1)
 					{
-						partCfgFileContent += Environment.NewLine + Environment.NewLine + 
-@"MODULE
+						int partHeader = partCfgFileContent.IndexOf("PART") + 4;
+						int bracket = partCfgFileContent.IndexOf("{", partHeader);
+						if (bracket - partHeader <= 5)
+						{
+							int lastBracket = partCfgFileContent.LastIndexOf("}");
+
+							partCfgFileContent = partCfgFileContent.Substring(0, lastBracket) + Environment.NewLine +
+	@"MODULE
+{
+	name = ModuleTweakableParam
+	useMultipleParameterLogic = true
+}
+"
+							+ Environment.NewLine + partCfgFileContent.Substring(lastBracket);
+						}
+						else
+						{
+							partCfgFileContent += Environment.NewLine + Environment.NewLine +
+	@"MODULE
 {
 	name = ModuleTweakableParam
 	useMultipleParameterLogic = true
 }
 ";
+						}
 						File.WriteAllText(partCfgFilePath, partCfgFileContent);
 					}
 					else

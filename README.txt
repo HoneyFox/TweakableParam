@@ -98,7 +98,7 @@ TweakableParamConfigInfuser.exe
 
 	This tool is simple to use.
 	1) Launch the program.
-	2) Click "..." button and select your KSP/Parts folder.
+	2) Click "..." button and select your part folder ( like Gamedata\Squad\Parts\ ).
 	3) Now pick the parts you want to insert the module into. (with Check All/None buttons for convenience)
 	4) Click "Add TweakableParam Capability to Selected Parts" button, and confirm your operation.
 	5) Now (re)start your KSP game.
