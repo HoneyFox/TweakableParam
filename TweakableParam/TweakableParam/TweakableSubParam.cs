@@ -17,6 +17,8 @@ namespace TweakableParam
 		[KSPField(isPersistant = true)]
 		public float tweakedValue = -1.0f;
 
+		public List<float> tweakedCurve = null;
+
 		[KSPField(isPersistant = false)]
 		public float minValue;
 		[KSPField(isPersistant = false)]
@@ -43,32 +45,102 @@ namespace TweakableParam
 			FieldInfo fi = GetFieldInfo(targetField, out obj);
 			if (obj != null)
 			{
-				Debug.Log("Field type is: " + fi.FieldType.Name);
-				if (m_startState == PartModule.StartState.Editor)
+				if (fi.FieldType.Equals(typeof(Single)) || fi.FieldType.Equals(typeof(Double)) || fi.FieldType.Equals(typeof(Int32)) || fi.FieldType.Equals(typeof(UInt32)))
 				{
-					TweakableParamGUI.GetInstance().CheckClear();
-					TweakableParamGUIItem item = new TweakableParamGUIItem(TweakableParamGUI.GetInstance(), this);
-					if (tweakedValue == -1.0f)
+					Debug.Log("Field type is: " + fi.FieldType.Name);
+					if (m_startState == PartModule.StartState.Editor)
 					{
-						Debug.Log("Field is: " + fi.GetValue(obj).ToString());
-						tweakedValue = Convert.ToSingle(fi.GetValue(obj));
-					}
+						TweakableParamGUI.GetInstance().CheckClear();
+						TweakableParamGUIItem item = new TweakableParamGUIItem(TweakableParamGUI.GetInstance(), this);
+						if (tweakedValue == -1.0f)
+						{
+							tweakedValue = Convert.ToSingle(fi.GetValue(obj));
+							Debug.Log("Field is: " + tweakedValue.ToString());
+						}
 
-					if (this.parentModule != null)
+						if (this.parentModule != null)
+						{
+							this.parentModule.UpdateTweakedValue(this);
+						}
+					}
+					else
 					{
-						this.parentModule.UpdateTweakedValue(this);
+						TweakableParamGUI.GetInstance().ClearGUIItem();
+
+						if (tweakedValue > maxValue) tweakedValue = maxValue;
+						if (tweakedValue < minValue) tweakedValue = minValue;
+						Debug.Log(String.Format("Setting tweakable parameter: {0} to {1}", fi.Name, tweakedValue));
+						if (!setOnlyOnLaunchPad || ((int)m_startState & (int)(PartModule.StartState.PreLaunch)) != 0)
+							fi.SetValue(obj, Convert.ChangeType(tweakedValue, fi.FieldType));
 					}
 				}
 				else
-				{
-					TweakableParamGUI.GetInstance().ClearGUIItem();
+				{ 
+					// Float curve.
+					Debug.Log("Field type is: " + fi.FieldType.Name);
+					if (m_startState == PartModule.StartState.Editor)
+					{
+						TweakableParamGUI.GetInstance().CheckClear();
+						TweakableParamGUIItem item = new TweakableParamGUIItem(TweakableParamGUI.GetInstance(), this);
+						if (tweakedCurve == null)
+						{
+							Debug.Log("Starting analyzing FloatCurve.");
+							tweakedCurve = GetKeysFromFloatCurve((FloatCurve)fi.GetValue(obj));
+						}
 
-					if (tweakedValue > maxValue) tweakedValue = maxValue;
-					if (tweakedValue < minValue) tweakedValue = minValue;
-					Debug.Log(String.Format("Setting tweakable parameter: {0} to {1}", fi.Name, tweakedValue));
-					if (!setOnlyOnLaunchPad || ((int)m_startState & (int)(PartModule.StartState.PreLaunch)) != 0)
-						fi.SetValue(obj, Convert.ChangeType(tweakedValue, fi.FieldType));
+						if (this.parentModule != null)
+						{
+							this.parentModule.UpdateTweakedValue(this);
+						}
+					}
+					else
+					{
+						TweakableParamGUI.GetInstance().ClearGUIItem();
+
+						Debug.Log(String.Format("Setting tweakable parameter: {0} to {1}", fi.Name, tweakedCurve));
+						if (!setOnlyOnLaunchPad || ((int)m_startState & (int)(PartModule.StartState.PreLaunch)) != 0)
+						{
+							if (tweakedCurve == null)
+							{ 
+								fi.SetValue(obj, Convert.ChangeType(tweakedValue, fi.FieldType)); 
+							}
+							else
+							{
+								FloatCurve newFloatCurve = new FloatCurve();
+								for (int i = 0; i < tweakedCurve.Count / 2; ++i)
+									newFloatCurve.Add(tweakedCurve[i * 2], tweakedCurve[i * 2 + 1]);
+
+								fi.SetValue(obj, newFloatCurve);
+							}
+						}
+					}
 				}
+			}
+		}
+
+		public List<float> GetKeysFromFloatCurve(FloatCurve curve)
+		{
+			try
+			{
+				ConfigNode myConfigNode = new ConfigNode("CurveNode");
+				curve.Save(myConfigNode);
+
+				Debug.Log("Curve data acquired.");
+				List<float> result = new List<float>(myConfigNode.values.Count * 2);
+				for (int i = 0; i < myConfigNode.values.Count; ++i)
+				{
+					string keyValue = myConfigNode.values[i].value;
+					Debug.Log(keyValue);
+					string[] keyValueParts = keyValue.Split(' ');
+					result.Add(Convert.ToSingle(keyValueParts[0]));
+					result.Add(Convert.ToSingle(keyValueParts[1]));
+				}
+				return result;
+			}
+			catch (Exception e)
+			{
+				Debug.Log(e.Message);
+				return null;
 			}
 		}
 
@@ -157,6 +229,33 @@ namespace TweakableParam
 			if (this.parentModule != null)
 			{
 				this.parentModule.UpdateTweakedValue(this);
+			}
+		}
+
+		public void AddCurvePoint(float time, float value)
+		{
+			if (tweakedCurve != null)
+			{
+				tweakedCurve.Add(time);
+				tweakedCurve.Add(value);
+
+				if (this.parentModule != null)
+				{
+					this.parentModule.UpdateTweakedValue(this);
+				}
+			}
+		}
+
+		public void ClearCurvePoints()
+		{
+			if (tweakedCurve != null)
+			{
+				tweakedCurve.Clear();
+
+				if (this.parentModule != null)
+				{
+					this.parentModule.UpdateTweakedValue(this);
+				}
 			}
 		}
 	}

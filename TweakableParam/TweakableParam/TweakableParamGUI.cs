@@ -292,6 +292,12 @@ namespace TweakableParam
 
 	class TweakableParamGUIItem
 	{
+		public static float newCurveTime = 0;
+		public static float newCurveValue = 0;
+		public static string newCurveTimeStr = "0";
+		public static string newCurveValueStr = "0";
+
+
 		public TweakableParamGUI m_gui = null;
 		public object m_controller = null;
 
@@ -357,6 +363,8 @@ namespace TweakableParam
 			bool isDecreaseButtonClicked = false;
 			bool isIncreaseRepeatButtonClicked = false;
 			bool isDecreaseRepeatButtonClicked = false;
+			bool isAddButtonClicked = false;
+			bool isClearButtonClicked = false;
 
 			GUIStyle sty = new GUIStyle(GUI.skin.button);
 			sty.normal.textColor = sty.focused.textColor = Color.white;
@@ -387,22 +395,45 @@ namespace TweakableParam
 			else
 			{
 				ModuleTweakableSubParam controller = m_controller as ModuleTweakableSubParam;
-				GUILayout.Label("Field: " + controller.targetField, sty, GUILayout.ExpandWidth(true));
-				GUILayout.Label("Adjustment Range: (" + controller.minValue.ToString() + " - " + controller.maxValue.ToString() + "), Step: " + controller.stepValue.ToString(), sty, GUILayout.ExpandWidth(true));
-				GUILayout.BeginHorizontal(GUILayout.ExpandWidth(true));
+				if (controller.tweakedCurve != null)
 				{
-					isDecreaseRepeatButtonClicked = GUILayout.RepeatButton("--", sty, GUILayout.ExpandWidth(true), GUILayout.MaxWidth(35.0f));
-					isDecreaseButtonClicked = GUILayout.Button("-", sty, GUILayout.ExpandWidth(true), GUILayout.MaxWidth(30.0f));
-					GUILayout.Box(Math.Round(controller.tweakedValue, 4).ToString("F4"), sty, GUILayout.ExpandWidth(true));
-					isIncreaseButtonClicked = GUILayout.Button("+", sty, GUILayout.ExpandWidth(true), GUILayout.MaxWidth(30.0f));
-					isIncreaseRepeatButtonClicked = GUILayout.RepeatButton("++", sty, GUILayout.ExpandWidth(true), GUILayout.MaxWidth(35.0f));
-				}
-				GUILayout.EndHorizontal();
+					GUILayout.Label("Field: " + controller.targetField, sty, GUILayout.ExpandWidth(true));
+					GUILayout.Label("Curve: " + controller.parentModule.SerializeFloatCurve(controller.tweakedCurve), sty, GUILayout.ExpandWidth(true));
+					GUILayout.BeginHorizontal(GUILayout.ExpandWidth(true));
+					{
+						Single.TryParse(GUILayout.TextField(newCurveTimeStr, sty, GUILayout.ExpandWidth(true)), out newCurveTime);
+						newCurveTimeStr = newCurveTime.ToString("F1");
+						Single.TryParse(GUILayout.TextField(newCurveValueStr, sty, GUILayout.ExpandWidth(true)), out newCurveValue);
+						newCurveValueStr = newCurveValue.ToString("F1"); 
+						isAddButtonClicked = GUILayout.Button("+", sty, GUILayout.ExpandWidth(true), GUILayout.MaxWidth(30.0f));
+						isClearButtonClicked = GUILayout.Button("Clear", sty, GUILayout.ExpandWidth(true), GUILayout.MaxWidth(100.0f));
+					}
+					GUILayout.EndHorizontal();
 
-				if (isDecreaseButtonClicked || isDecreaseRepeatButtonClicked)
-					controller.DecreaseValue();
-				if (isIncreaseButtonClicked || isIncreaseRepeatButtonClicked)
-					controller.IncreaseValue();
+					if (isAddButtonClicked)
+						controller.AddCurvePoint(newCurveTime, newCurveValue);
+					if (isClearButtonClicked)
+						controller.ClearCurvePoints();
+				}
+				else
+				{
+					GUILayout.Label("Field: " + controller.targetField, sty, GUILayout.ExpandWidth(true));
+					GUILayout.Label("Adjustment Range: (" + controller.minValue.ToString() + " - " + controller.maxValue.ToString() + "), Step: " + controller.stepValue.ToString(), sty, GUILayout.ExpandWidth(true));
+					GUILayout.BeginHorizontal(GUILayout.ExpandWidth(true));
+					{
+						isDecreaseRepeatButtonClicked = GUILayout.RepeatButton("--", sty, GUILayout.ExpandWidth(true), GUILayout.MaxWidth(35.0f));
+						isDecreaseButtonClicked = GUILayout.Button("-", sty, GUILayout.ExpandWidth(true), GUILayout.MaxWidth(30.0f));
+						GUILayout.Box(Math.Round(controller.tweakedValue, 4).ToString("F4"), sty, GUILayout.ExpandWidth(true));
+						isIncreaseButtonClicked = GUILayout.Button("+", sty, GUILayout.ExpandWidth(true), GUILayout.MaxWidth(30.0f));
+						isIncreaseRepeatButtonClicked = GUILayout.RepeatButton("++", sty, GUILayout.ExpandWidth(true), GUILayout.MaxWidth(35.0f));
+					}
+					GUILayout.EndHorizontal();
+
+					if (isDecreaseButtonClicked || isDecreaseRepeatButtonClicked)
+						controller.DecreaseValue();
+					if (isIncreaseButtonClicked || isIncreaseRepeatButtonClicked)
+						controller.IncreaseValue();
+				}
 			}
 		}
 	}

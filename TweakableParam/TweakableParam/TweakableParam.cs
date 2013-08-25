@@ -122,8 +122,15 @@ namespace TweakableParam
 					newModule.maxValue = Convert.ToSingle(fields[3]);
 					newModule.stepValue = Convert.ToSingle(fields[4]);
 					newModule.setOnlyOnLaunchPad = (Convert.ToInt32(fields[5]) != 0);
-					newModule.tweakedValue = (fields[1] == "" ? -1 : Convert.ToSingle(fields[1]));
-
+					if (fields[1].StartsWith("["))
+					{
+						newModule.tweakedCurve = DeserializeFloatCurve(fields[1]);
+					}
+					else
+					{
+						newModule.tweakedValue = (fields[1] == "" ? -1 : Convert.ToSingle(fields[1]));
+						newModule.tweakedCurve = null;
+					}
 				}
 				//else
 				//{
@@ -159,10 +166,38 @@ namespace TweakableParam
 					curSubIdx = moduleSection.IndexOf(",", curSubIdx + 1);
 					curSubIdx++;
 					int endSubIdx = moduleSection.IndexOf(",", curSubIdx);
-					moduleSection = moduleSection.Substring(0, curSubIdx) + subModule.tweakedValue.ToString("F4") + moduleSection.Substring(endSubIdx);
+
+					if (subModule.tweakedCurve != null)
+						moduleSection = moduleSection.Substring(0, curSubIdx) + SerializeFloatCurve(subModule.tweakedCurve) + moduleSection.Substring(endSubIdx);
+					else
+						moduleSection = moduleSection.Substring(0, curSubIdx) + subModule.tweakedValue.ToString("F4") + moduleSection.Substring(endSubIdx);
 					tweakableParamModulesData = tweakableParamModulesData.Substring(0, curIdx) + moduleSection + tweakableParamModulesData.Substring(endIdx);
 				}
 			}
+		}
+
+		public string SerializeFloatCurve(List<float> curve)
+		{
+			string result = "[";
+			foreach (float f in curve)
+				result += f.ToString("F1") + "|";
+			if(result.EndsWith("|"))
+				result = result.Substring(0, result.Length - 1);
+			result += "]";
+
+			return result;
+		}
+
+		public List<float> DeserializeFloatCurve(string curve)
+		{
+			string[] curveParts = curve.Replace("[", "").Replace("]", "").Split(new string[]{"|"}, StringSplitOptions.RemoveEmptyEntries);
+			List<float> result = new List<float>(curveParts.Length);
+			foreach (string curvePart in curveParts)
+			{ 
+				result.Add(Convert.ToSingle(curvePart));
+			}
+
+			return result;
 		}
 
 		public FieldInfo GetFieldInfo(string target, out object obj)

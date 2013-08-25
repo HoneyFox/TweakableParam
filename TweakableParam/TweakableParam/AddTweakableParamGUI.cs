@@ -88,7 +88,7 @@ namespace TweakableParam
 			FieldInfo[] fields = m_selectedPart.GetType().GetFields();
 			foreach (FieldInfo fi in fields)
 			{
-				//Debug.Log("Iterating all fields: " + fi.FieldType.Name + " " + fi.Name);
+				//Debug.Log("Iterating all fields: " + fi.FieldType.Name + " " + fi.Name + " (" + (fi.IsPublic ? "public" : "non-public") + ")");
 				if (fi.IsPublic == false)
 				{
 					//Debug.Log("Non-public field, skipping...");
@@ -114,6 +114,16 @@ namespace TweakableParam
 					ReflectedObjectGUINode node = new ReflectedObjectGUINode(null, this, fi, fi.Name, true, "0", "10", "1", false);
 					RegisterGUINode(node);
 				}
+				else if
+				(
+					fi.FieldType.Equals(typeof(FloatCurve))
+				)
+				{ 
+					// This is a float-curve node.
+					Debug.Log("Float curve detected.");
+					ReflectedCurveGUINode node = new ReflectedCurveGUINode(null, this, fi, fi.Name, true, "1", "-1", "0", false);
+					RegisterGUINode(node);
+				}
 			}
 
 			for (int i = 0; i < m_selectedPart.Modules.Count; ++i)
@@ -129,7 +139,7 @@ namespace TweakableParam
 					FieldInfo[] moduleFields = partModule.GetType().GetFields();
 					foreach (FieldInfo fi in moduleFields)
 					{
-						//Debug.Log("Iterating all fields: " + fi.FieldType.ToString() + " " + fi.Name);
+						//Debug.Log("Iterating all fields: " + fi.FieldType.ToString() + " " + fi.Name + " (" + (fi.IsPublic ? "public" : "non-public") + ")");
 						if (fi.IsPublic == false)
 						{
 							//Debug.Log("Non-public field, skipping...");
@@ -153,6 +163,16 @@ namespace TweakableParam
 						{
 							// This is a valid node.
 							ReflectedObjectGUINode subNode = new ReflectedObjectGUINode(node, this, fi, fi.Name, true, "0", "10", "1", false);
+							node.m_subNodes.Add(subNode);
+						}
+						else if
+						(
+							fi.FieldType.Equals(typeof(FloatCurve))
+						)
+						{
+							// This is a float-curve node.
+							Debug.Log("Float curve detected.");
+							ReflectedCurveGUINode subNode = new ReflectedCurveGUINode(node, this, fi, fi.Name, true, "1", "-1", "0", false);
 							node.m_subNodes.Add(subNode);
 						}
 					}
@@ -282,69 +302,137 @@ namespace TweakableParam
 				}
 			}
 
-			if (targetModule == null)
+			if (minValue == 1 && maxValue == -1 && stepValue == 0)
 			{
-				Debug.Log("Create a new module.");
-				targetModule = new ModuleTweakableSubParam();
-				targetModule.parentModule = module;
+				if (targetModule == null)
+				{
+					Debug.Log("Create a new module.");
+					targetModule = new ModuleTweakableSubParam();
+					targetModule.parentModule = module;
 
-				targetModule.targetField = targetField;
-				targetModule.minValue = minValue;
-				targetModule.maxValue = maxValue;
-				targetModule.stepValue = stepValue;
-				targetModule.setOnlyOnLaunchPad = setOnlyOnLaunchPad;
+					targetModule.targetField = targetField;
+					targetModule.minValue = minValue;
+					targetModule.maxValue = maxValue;
+					targetModule.stepValue = stepValue;
+					targetModule.setOnlyOnLaunchPad = setOnlyOnLaunchPad;
 
-				targetModule.tweakedValue = maxValue;
+					targetModule.tweakedCurve = null;
 
-				targetModule.OnStart(PartModule.StartState.Editor);
+					targetModule.OnStart(PartModule.StartState.Editor);
 
-				module.tweakableParams.Add(targetModule);
-				if (module.tweakableParamModulesData != "")
-					module.tweakableParamModulesData = module.tweakableParamModulesData.TrimEnd(',') + ",";
-				module.tweakableParamModulesData += "<" +
-					targetModule.targetField + "," +
-					targetModule.tweakedValue.ToString("F4") + "," +
-					targetModule.minValue.ToString("F4") + "," +
-					targetModule.maxValue.ToString("F4") + "," +
-					targetModule.stepValue.ToString("F4") + "," +
-					(targetModule.setOnlyOnLaunchPad ? "1" : "0") +
-					">,";
+					module.tweakableParams.Add(targetModule);
+					if (module.tweakableParamModulesData != "")
+						module.tweakableParamModulesData = module.tweakableParamModulesData.TrimEnd(',') + ",";
+					module.tweakableParamModulesData += "<" +
+						targetModule.targetField + "," +
+						targetModule.parentModule.SerializeFloatCurve(targetModule.tweakedCurve) + "," +
+						targetModule.minValue.ToString("F4") + "," +
+						targetModule.maxValue.ToString("F4") + "," +
+						targetModule.stepValue.ToString("F4") + "," +
+						(targetModule.setOnlyOnLaunchPad ? "1" : "0") +
+						">,";
+				}
+				else
+				{
+					targetModule.minValue = minValue;
+					targetModule.maxValue = maxValue;
+					targetModule.stepValue = stepValue;
+
+					targetModule.ClearCurvePoints();
+
+					int curIdx = -1;
+					int curPos = -1;
+					while (curIdx != index)
+					{
+						curPos = module.tweakableParamModulesData.IndexOf("<", curPos + 1);
+						curIdx++;
+						if (curPos == -1)
+							break;
+					}
+
+					if (curIdx == index)
+					{
+						int endPos = module.tweakableParamModulesData.IndexOf(">", curPos) + 1;
+						module.tweakableParamModulesData =
+							module.tweakableParamModulesData.Substring(0, curPos) +
+							"<" +
+							targetModule.targetField + "," +
+							targetModule.parentModule.SerializeFloatCurve(targetModule.tweakedCurve) + "," +
+							targetModule.minValue.ToString("F4") + "," +
+							targetModule.maxValue.ToString("F4") + "," +
+							targetModule.stepValue.ToString("F4") + "," +
+							(targetModule.setOnlyOnLaunchPad ? "1" : "0") +
+							">"
+							+ module.tweakableParamModulesData.Substring(endPos);
+					}
+				}
 			}
 			else
 			{
-				targetModule.minValue = minValue;
-				targetModule.maxValue = maxValue;
-				targetModule.stepValue = stepValue;
+				if (targetModule == null)
+				{
+					Debug.Log("Create a new module.");
+					targetModule = new ModuleTweakableSubParam();
+					targetModule.parentModule = module;
 
-				if (targetModule.tweakedValue > maxValue)
+					targetModule.targetField = targetField;
+					targetModule.minValue = minValue;
+					targetModule.maxValue = maxValue;
+					targetModule.stepValue = stepValue;
+					targetModule.setOnlyOnLaunchPad = setOnlyOnLaunchPad;
+
 					targetModule.tweakedValue = maxValue;
-				else if (targetModule.tweakedValue < minValue)
-					targetModule.tweakedValue = minValue;
 
-				int curIdx = -1;
-				int curPos = -1;
-				while (curIdx != index)
-				{
-					curPos = module.tweakableParamModulesData.IndexOf("<", curPos + 1);
-					curIdx++;
-					if (curPos == -1)
-						break;
-				}
+					targetModule.OnStart(PartModule.StartState.Editor);
 
-				if (curIdx == index)
-				{
-					int endPos = module.tweakableParamModulesData.IndexOf(">", curPos) + 1;
-					module.tweakableParamModulesData = 
-						module.tweakableParamModulesData.Substring(0, curPos) +
-						"<" +
+					module.tweakableParams.Add(targetModule);
+					if (module.tweakableParamModulesData != "")
+						module.tweakableParamModulesData = module.tweakableParamModulesData.TrimEnd(',') + ",";
+					module.tweakableParamModulesData += "<" +
 						targetModule.targetField + "," +
 						targetModule.tweakedValue.ToString("F4") + "," +
 						targetModule.minValue.ToString("F4") + "," +
 						targetModule.maxValue.ToString("F4") + "," +
 						targetModule.stepValue.ToString("F4") + "," +
-						(targetModule.setOnlyOnLaunchPad ? "1" : "0") + 
-						">"
-						+ module.tweakableParamModulesData.Substring(endPos);
+						(targetModule.setOnlyOnLaunchPad ? "1" : "0") +
+						">,";
+				}
+				else
+				{
+					targetModule.minValue = minValue;
+					targetModule.maxValue = maxValue;
+					targetModule.stepValue = stepValue;
+
+					if (targetModule.tweakedValue > maxValue)
+						targetModule.tweakedValue = maxValue;
+					else if (targetModule.tweakedValue < minValue)
+						targetModule.tweakedValue = minValue;
+
+					int curIdx = -1;
+					int curPos = -1;
+					while (curIdx != index)
+					{
+						curPos = module.tweakableParamModulesData.IndexOf("<", curPos + 1);
+						curIdx++;
+						if (curPos == -1)
+							break;
+					}
+
+					if (curIdx == index)
+					{
+						int endPos = module.tweakableParamModulesData.IndexOf(">", curPos) + 1;
+						module.tweakableParamModulesData =
+							module.tweakableParamModulesData.Substring(0, curPos) +
+							"<" +
+							targetModule.targetField + "," +
+							targetModule.tweakedValue.ToString("F4") + "," +
+							targetModule.minValue.ToString("F4") + "," +
+							targetModule.maxValue.ToString("F4") + "," +
+							targetModule.stepValue.ToString("F4") + "," +
+							(targetModule.setOnlyOnLaunchPad ? "1" : "0") +
+							">"
+							+ module.tweakableParamModulesData.Substring(endPos);
+					}
 				}
 			}
 		}
@@ -463,7 +551,7 @@ namespace TweakableParam
 		public bool m_setOnlyOnLaunchPad = false;
 
 		#region GUI Related
-		bool isExpanded = false;
+		protected bool isExpanded = false;
 		#endregion
 
 		public ReflectedObjectGUINode(ReflectedObjectGUINode parent, AddTweakableParamGUI gui, FieldInfo fieldInfo, string field, bool isLeaf, string inputMin, string inputMax, string inputStep, bool setOnlyOnLaunchPad)
@@ -482,7 +570,7 @@ namespace TweakableParam
 			m_setOnlyOnLaunchPad = setOnlyOnLaunchPad;
 		}
 
-		public void RenderGUI()
+		public virtual void RenderGUI()
 		{
 			//Debug.Log("Rendering node: " + m_field);
 
@@ -531,7 +619,81 @@ namespace TweakableParam
 								Debug.Log(fullFieldName);
 							}
 
-							AddTweakableParamGUI.GetInstance().AddModuleToSelectedPart(fullFieldName, m_inputMin, m_inputMax, m_inputStep, m_setOnlyOnLaunchPad);
+							if(Convert.ToSingle(m_inputMax) >= Convert.ToSingle(m_inputMin))
+								AddTweakableParamGUI.GetInstance().AddModuleToSelectedPart(fullFieldName, m_inputMin, m_inputMax, m_inputStep, m_setOnlyOnLaunchPad);
+						}
+					}
+					GUILayout.EndHorizontal();
+				}
+			}
+			GUILayout.EndVertical();
+
+			if (isExpanded)
+			{
+				foreach (ReflectedObjectGUINode subNode in m_subNodes)
+				{
+					subNode.RenderGUI();
+				}
+			}
+
+			if (isExpandButtonClicked)
+				isExpanded = !isExpanded;
+		}
+	}
+
+	class ReflectedCurveGUINode : ReflectedObjectGUINode
+	{
+		public ReflectedCurveGUINode(ReflectedObjectGUINode parent, AddTweakableParamGUI gui, FieldInfo fieldInfo, string field, bool isLeaf, string inputMin, string inputMax, string inputStep, bool setOnlyOnLaunchPad)
+		: base(parent, gui, fieldInfo, field, isLeaf, inputMin, inputMax,inputStep, setOnlyOnLaunchPad)
+		{
+			inputMin = "0";
+			inputMax = "0";
+			inputStep = "0";
+			setOnlyOnLaunchPad = false;
+		}
+
+		public override void RenderGUI()
+		{
+			//Debug.Log("Rendering node: " + m_field);
+
+			bool isExpandButtonClicked = false;
+
+			if (m_gui == null || m_field == "") return;
+
+			GUIStyle sty = new GUIStyle(GUI.skin.button);
+			sty.normal.textColor = sty.focused.textColor = Color.white;
+			sty.hover.textColor = sty.active.textColor = Color.yellow;
+			sty.onNormal.textColor = sty.onFocused.textColor = sty.onHover.textColor = sty.onActive.textColor = Color.green;
+			sty.padding = new RectOffset(4, 4, 4, 4);
+
+			GUILayout.BeginVertical(GUILayout.ExpandWidth(true));
+			{
+				GUILayout.BeginHorizontal(GUILayout.ExpandWidth(true));
+				{
+					if (m_isLeaf == false)
+						isExpandButtonClicked = GUILayout.Button((isExpanded ? "<" : ">"), sty, GUILayout.ExpandWidth(true), GUILayout.MaxWidth(30.0f));
+					GUILayout.Label(m_field, sty, GUILayout.ExpandWidth(true));
+				}
+				GUILayout.EndHorizontal();
+
+				if (m_isLeaf == true)
+				{
+					GUILayout.BeginHorizontal(GUILayout.ExpandWidth(true));
+					{
+						if (GUILayout.Button("Replace Curve", GUILayout.ExpandWidth(true)))
+						{
+							// We need to add a module onto that part.
+							string fullFieldName = m_field;
+							Debug.Log(fullFieldName);
+							ReflectedObjectGUINode curNode = this;
+							while (curNode.m_parent != null)
+							{
+								curNode = curNode.m_parent;
+								fullFieldName = curNode.m_field + "." + fullFieldName;
+								Debug.Log(fullFieldName);
+							}
+
+							AddTweakableParamGUI.GetInstance().AddModuleToSelectedPart(fullFieldName, "1", "-1", "0", false);
 						}
 					}
 					GUILayout.EndHorizontal();
