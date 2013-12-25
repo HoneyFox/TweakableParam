@@ -485,6 +485,11 @@ namespace TweakableParam
 		{
 			//Debug.Log("DeleteGUI of AddTweakableParamGUI");
 			RenderingManager.RemoveFromPostDrawQueue(3, DrawGUI);
+			if (editorLocked)
+			{
+				EditorLogic.fetch.Unlock("ATP");
+				editorLocked = false;
+			}
 		}
 
 		public void DrawGUI()
@@ -505,14 +510,14 @@ namespace TweakableParam
 			mousePos.y = Screen.height - mousePos.y;
 			bool cursorInGUI = WindowPos.Contains(mousePos);
 			//This locks and unlocks the editor as necessary; cannot constantly call the lock or unlock functions as that causes the editor to be constantly locked
-			if (cursorInGUI && !editorLocked && !EditorLogic.editorLocked)
+			if (cursorInGUI && !editorLocked)
 			{
-				EditorLogic.fetch.Lock(true, true, true);
+				EditorLogic.fetch.Lock(true, true, true, "ATP");
 				editorLocked = true;
 			}
-			else if (!cursorInGUI && editorLocked && EditorLogic.editorLocked)
+			else if (!cursorInGUI && editorLocked)
 			{
-				EditorLogic.fetch.Unlock();
+				EditorLogic.fetch.Unlock("ATP");
 				editorLocked = false;
 			}
 		}

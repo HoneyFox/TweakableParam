@@ -180,7 +180,7 @@ namespace TweakableParam
 		{
 			string result = "[";
 			foreach (float f in curve)
-				result += f.ToString("F1") + "|";
+				result += f.ToString("F2") + "|";
 			if(result.EndsWith("|"))
 				result = result.Substring(0, result.Length - 1);
 			result += "]";

@@ -134,6 +134,11 @@ namespace TweakableParam
 		{
 			Debug.Log("DeleteGUI");
 			RenderingManager.RemoveFromPostDrawQueue(3, DrawGUI);
+			if (editorLocked)
+			{
+				EditorLogic.fetch.Unlock("TP");
+				editorLocked = false;
+			}
 		}
 
 		public void DrawGUI()
@@ -151,14 +156,14 @@ namespace TweakableParam
 			mousePos.y = Screen.height - mousePos.y;
 			bool cursorInGUI = WindowPos.Contains(mousePos);
 			//This locks and unlocks the editor as necessary; cannot constantly call the lock or unlock functions as that causes the editor to be constantly locked
-			if (cursorInGUI && !editorLocked && !EditorLogic.editorLocked)
+			if (cursorInGUI && !editorLocked)
 			{
-				EditorLogic.fetch.Lock(true, true, true);
+				EditorLogic.fetch.Lock(true, true, true, "TP");
 				editorLocked = true;
 			}
-			else if (!cursorInGUI && editorLocked && EditorLogic.editorLocked)
+			else if (!cursorInGUI && editorLocked)
 			{
-				EditorLogic.fetch.Unlock();
+				EditorLogic.fetch.Unlock("TP");
 				editorLocked = false;
 			}
 		}
@@ -365,6 +370,7 @@ namespace TweakableParam
 			bool isDecreaseRepeatButtonClicked = false;
 			bool isAddButtonClicked = false;
 			bool isClearButtonClicked = false;
+			bool isEditButtonClicked = false;
 
 			GUIStyle sty = new GUIStyle(GUI.skin.button);
 			sty.normal.textColor = sty.focused.textColor = Color.white;
@@ -402,11 +408,12 @@ namespace TweakableParam
 					GUILayout.BeginHorizontal(GUILayout.ExpandWidth(true));
 					{
 						Single.TryParse(GUILayout.TextField(newCurveTimeStr, sty, GUILayout.ExpandWidth(true)), out newCurveTime);
-						newCurveTimeStr = newCurveTime.ToString("F1");
+						newCurveTimeStr = newCurveTime.ToString("F2");
 						Single.TryParse(GUILayout.TextField(newCurveValueStr, sty, GUILayout.ExpandWidth(true)), out newCurveValue);
-						newCurveValueStr = newCurveValue.ToString("F1"); 
+						newCurveValueStr = newCurveValue.ToString("F2"); 
 						isAddButtonClicked = GUILayout.Button("+", sty, GUILayout.ExpandWidth(true), GUILayout.MaxWidth(30.0f));
 						isClearButtonClicked = GUILayout.Button("Clear", sty, GUILayout.ExpandWidth(true), GUILayout.MaxWidth(100.0f));
+						isEditButtonClicked = GUILayout.Button("Edit", sty, GUILayout.ExpandWidth(true), GUILayout.MaxWidth(100.0f));
 					}
 					GUILayout.EndHorizontal();
 
@@ -414,6 +421,11 @@ namespace TweakableParam
 						controller.AddCurvePoint(newCurveTime, newCurveValue);
 					if (isClearButtonClicked)
 						controller.ClearCurvePoints();
+					if (isEditButtonClicked)
+					{
+						TweakableFloatCurveEditor.GetInstance().SetReceiver(controller);
+						TweakableFloatCurveEditor.GetInstance().AddGUI();
+					}
 				}
 				else
 				{
