@@ -36,10 +36,21 @@ namespace TweakableParam
 				if (Input.GetKeyDown(KeyCode.P))
 				{
 					Debug.Log("P Received.");
-					if (m_selectedPart != EditorLogic.fetch.PartSelected)
+					Part newPart = null;
+					if (EditorLogic.fetch.editorScreen == EditorLogic.EditorScreen.Parts)
+					{
+						newPart = EditorLogic.fetch.PartSelected;
+
+					}
+					else if (EditorLogic.fetch.editorScreen == EditorLogic.EditorScreen.Actions)
+					{
+						newPart = (EditorActionGroups.Instance.HasSelectedParts() == true ? EditorActionGroups.Instance.GetSelectedParts()[0] : null);
+					}
+
+					if (m_selectedPart != newPart)
 					{
 						//Debug.Log("Part selected changed.");
-						m_selectedPart = EditorLogic.fetch.PartSelected;
+						m_selectedPart = newPart;
 						if (m_selectedPart != null)
 						{
 							//Debug.Log("We've selected a part.");
@@ -68,7 +79,7 @@ namespace TweakableParam
 						}
 					}
 					else
-					{ 
+					{
 						//Debug.Log("Part selected unchanged: " + ((m_selectedPart == null) ? "null" : m_selectedPart.name));
 					}
 				}

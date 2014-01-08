@@ -127,6 +127,7 @@ namespace TweakableParam
 			// Render the curve.
 			if(m_values.Count > 0)
 			{
+				float prevProgressY = float.NaN;
 				for (int i = 1; i < canvas.width - 2; ++i)
 				{
 					float progressX = (i - 1.0f) / (canvas.width - 2.0f);
@@ -140,6 +141,39 @@ namespace TweakableParam
 					float actualY = m_curve.Evaluate(actualX);
 					//Debug.Log("TFCE: Eval(" + actualX.ToString("F2") + ") = " + actualY.ToString("F2"));
 					float progressY = (actualY - minY) / (maxY - minY);
+					if (float.IsNaN(prevProgressY))
+					{
+						// This is the first point.
+						prevProgressY = progressY;
+					}
+					else
+					{
+						if (Mathf.Abs(progressY - prevProgressY) >= 1.5f / (canvas.height - 2.0f))
+						{ 
+							// We need to insert more mid-points to smooth the curve.
+							if(progressY > prevProgressY)
+							{
+								for(float y = prevProgressY; y < progressY; y += 1.0f / (canvas.height - 2.0f))
+								{
+									if(y - prevProgressY < (progressY - prevProgressY) / 2.0)
+										canvas.SetPixel(i - 1, (int)(y * (canvas.height - 2.0f) + 1.0f), Color.green);
+									else
+										canvas.SetPixel(i, (int)(y * (canvas.height - 2.0f) + 1.0f), Color.green);
+								}
+							}
+							else
+							{
+								for (float y = prevProgressY; y > progressY; y -= 1.0f / (canvas.height - 2.0f))
+								{
+									if (y - progressY > (prevProgressY - progressY) / 2.0)
+										canvas.SetPixel(i - 1, (int)(y * (canvas.height - 2.0f) + 1.0f), Color.green);
+									else
+										canvas.SetPixel(i, (int)(y * (canvas.height - 2.0f) + 1.0f), Color.green);
+								}
+							}
+						}
+						prevProgressY = progressY;
+					}
 					canvas.SetPixel(i, (int)(progressY * (canvas.height - 2.0f) + 1.0f), Color.green);
 				}
 			}
@@ -218,7 +252,10 @@ namespace TweakableParam
 				if (canvasInvalidated == true)
 					UpdateCurve();
 				GUILayout.Label(canvas, GUILayout.Width(200), GUILayout.Height(200));
-				xAxisUseLog = GUILayout.Toggle(xAxisUseLog, "Use ln() on X-axis", GUILayout.ExpandWidth(true));
+				
+				bool newXAxisUseLog = GUILayout.Toggle(xAxisUseLog, "Use ln() on X-axis", GUILayout.ExpandWidth(true));
+				if (xAxisUseLog != newXAxisUseLog) canvasInvalidated = true;
+				xAxisUseLog = newXAxisUseLog;
 				GUILayout.BeginHorizontal(GUILayout.ExpandWidth(true), GUILayout.ExpandHeight(true));
 				{
 					// Index Selector, Two Input Boxes.
@@ -249,9 +286,9 @@ namespace TweakableParam
 				GUILayout.BeginHorizontal(GUILayout.ExpandWidth(true), GUILayout.ExpandHeight(true));
 				{ 
 					// Add, Edit, Remove Buttons.
-					isAddClicked = GUILayout.Button("Add", GUILayout.ExpandWidth(true));
-					isEditClicked = GUILayout.Button("Edit", GUILayout.ExpandWidth(true));
-					isRemoveClicked = GUILayout.Button("Remove", GUILayout.ExpandWidth(true));
+					//isAddClicked = GUILayout.Button("Add", GUILayout.ExpandWidth(true));
+					//isEditClicked = GUILayout.Button("Edit", GUILayout.ExpandWidth(true));
+					//isRemoveClicked = GUILayout.Button("Remove", GUILayout.ExpandWidth(true));
 				}
 				GUILayout.EndHorizontal();
 				GUILayout.BeginHorizontal(GUILayout.ExpandWidth(true), GUILayout.ExpandHeight(true));
