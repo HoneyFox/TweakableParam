@@ -85,7 +85,7 @@ After that, you need to add the following codes into part.cfg of parts that you 
 	In-Game Usage
 		1) Enter editor mode.
 		2) Build your rocket.
-		3) Pick the part you want to add tweakable parameters by left clicking on it.
+		3) Pick the part you want to add tweakable parameters by left clicking on it either in Part Mode or ActionGroup Mode.
 		4) Now press the "P" key to bring up the "Select Parameter" window.
 		5) You can now place your part back to the rocket. The window will stay visible until you press "P" key again.
 		6) Find parameters you want to tweak in the pop-up window.
