@@ -405,17 +405,17 @@ namespace TweakableParam
 				{
 					GUILayout.Label("Field: " + controller.targetField, sty, GUILayout.ExpandWidth(true));
 					GUILayout.Label("Curve: " + controller.parentModule.SerializeFloatCurve(controller.tweakedCurve), sty, GUILayout.ExpandWidth(true));
-					GUILayout.BeginHorizontal(GUILayout.ExpandWidth(true));
-					{
-						Single.TryParse(GUILayout.TextField(newCurveTimeStr, sty, GUILayout.ExpandWidth(true)), out newCurveTime);
-						newCurveTimeStr = newCurveTime.ToString("F2");
-						Single.TryParse(GUILayout.TextField(newCurveValueStr, sty, GUILayout.ExpandWidth(true)), out newCurveValue);
-						newCurveValueStr = newCurveValue.ToString("F2"); 
-						isAddButtonClicked = GUILayout.Button("+", sty, GUILayout.ExpandWidth(true), GUILayout.MaxWidth(30.0f));
-						isClearButtonClicked = GUILayout.Button("Clear", sty, GUILayout.ExpandWidth(true), GUILayout.MaxWidth(100.0f));
-						isEditButtonClicked = GUILayout.Button("Edit", sty, GUILayout.ExpandWidth(true), GUILayout.MaxWidth(100.0f));
-					}
-					GUILayout.EndHorizontal();
+					//GUILayout.BeginHorizontal(GUILayout.ExpandWidth(true));
+					//{
+						//Single.TryParse(GUILayout.TextField(newCurveTimeStr, sty, GUILayout.ExpandWidth(true)), out newCurveTime);
+						//newCurveTimeStr = newCurveTime.ToString("F2");
+						//Single.TryParse(GUILayout.TextField(newCurveValueStr, sty, GUILayout.ExpandWidth(true)), out newCurveValue);
+						//newCurveValueStr = newCurveValue.ToString("F2"); 
+						//isAddButtonClicked = GUILayout.Button("+", sty, GUILayout.ExpandWidth(true), GUILayout.MaxWidth(30.0f));
+						//isClearButtonClicked = GUILayout.Button("Clear", sty, GUILayout.ExpandWidth(true), GUILayout.MaxWidth(100.0f));
+						isEditButtonClicked = GUILayout.Button("Edit", sty, GUILayout.ExpandWidth(true));
+					//}
+					//GUILayout.EndHorizontal();
 
 					if (isAddButtonClicked)
 						controller.AddCurvePoint(newCurveTime, newCurveValue);

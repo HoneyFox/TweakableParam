@@ -19,11 +19,11 @@ namespace TweakableParam
 		bool m_visible = false;
 		Texture2D canvas = new Texture2D(200, 200);
 		bool canvasInvalidated = false;
-		int recordIndex;
-		string recordKeyStr;
-		string recordValueStr;
-		float recordKey;
-		float recordValue;
+		int recordIndex = -1;
+		string recordKeyStr = "";
+		string recordValueStr = "";
+		float recordKey = 0.0f;
+		float recordValue = 0.0f;
 		bool xAxisUseLog = false;
 		#endregion
 
@@ -32,22 +32,41 @@ namespace TweakableParam
 
 		public ModuleTweakableSubParam receiver = null;
 
-		public void AddKeyValuePair(float key, float value, float tanIn = 0.0f, float tanOut = 0.0f)
+		public int AddKeyValuePair(float key, float value, float tanIn = 0.0f, float tanOut = 0.0f)
 		{
-			m_values.Add(new Vector4(key, value, tanIn, tanOut));
-			canvasInvalidated = true;
+			canvasInvalidated = true; 
+			if (m_values.Count == 0)
+			{
+				m_values.Add(new Vector4(key, value, tanIn, tanOut));
+				return 0;
+			}
+			else
+			{
+				int i = 0;
+				for (i = 0; i < m_values.Count; ++i)
+				{
+					if (key < m_values[i].x)
+						break;
+				}
+				if (i == m_values.Count)
+					m_values.Add(new Vector4(key, value, tanIn, tanOut));
+				else
+					m_values.Insert(i, new Vector4(key, value, tanIn, tanOut));
+				return i;
+			}
 		}
 
-		public void EditKeyValuePair(int index, float newKey, float newValue, float newTanIn = 0.0f, float newTanOut = 0.0f)
+		public int EditKeyValuePair(int index, float newKey, float newValue, float newTanIn = 0.0f, float newTanOut = 0.0f)
 		{
-			m_values[index] = new Vector4(newKey, newValue, newTanIn, newTanOut);
 			canvasInvalidated = true;
+			RemoveKeyValuePair(index);
+			return AddKeyValuePair(newKey, newValue, newTanIn, newTanOut);
 		}
 
 		public void RemoveKeyValuePair(int index)
 		{
-			m_values.RemoveAt(index);
 			canvasInvalidated = true;
+			m_values.RemoveAt(index);
 		}
 
 		public void SetReceiver(ModuleTweakableSubParam receiver)
@@ -58,6 +77,18 @@ namespace TweakableParam
 			{
 				AddKeyValuePair(receiver.tweakedCurve[i * 2], receiver.tweakedCurve[i * 2 + 1]);
 			}
+
+			if (m_values.Count != 0)
+			{
+				recordIndex = 0;
+				recordKey = m_values[recordIndex].x;
+				recordValue = m_values[recordIndex].y;
+			}
+			else
+			{
+				recordIndex = -1;
+			}
+
 			canvasInvalidated = true;
 		}
 
@@ -128,6 +159,24 @@ namespace TweakableParam
 			if(m_values.Count > 0)
 			{
 				float prevProgressY = float.NaN;
+
+				float selectedActualX = 0.0f;
+				float selectedProgressX = 0.0f;
+				float selectedActualY = 0.0f;
+				float selectedProgressY = 0.0f;
+				if (recordIndex != -1)
+				{
+					selectedActualX = m_values[recordIndex].x;
+					selectedProgressX = Mathf.InverseLerp(minX, maxX, selectedActualX);
+					selectedActualY = m_values[recordIndex].y;
+					selectedProgressY = (selectedActualY - minY) / (maxY - minY);
+					if (xAxisUseLog)
+					{
+						selectedProgressX = Mathf.Sign(selectedActualX) * Mathf.Log10(Mathf.Abs(selectedActualX) + 1.0f);
+						selectedProgressX = Mathf.InverseLerp(minXLog, maxXLog, selectedProgressX);
+					}
+				}
+
 				for (int i = 1; i < canvas.width - 2; ++i)
 				{
 					float progressX = (i - 1.0f) / (canvas.width - 2.0f);
@@ -175,6 +224,18 @@ namespace TweakableParam
 						prevProgressY = progressY;
 					}
 					canvas.SetPixel(i, (int)(progressY * (canvas.height - 2.0f) + 1.0f), Color.green);
+
+
+					// Cross line for selected point.
+					if (recordIndex != -1)
+					{
+						if (i == (int)(selectedProgressX * (canvas.width - 2.0f) + 1.0f))
+						{
+							for (int y = 1; y < canvas.height - 2; ++y)
+								canvas.SetPixel(i, y, Color.yellow);
+						}
+						canvas.SetPixel(i, (int)(selectedProgressY * (canvas.height - 2.0f) + 1.0f), Color.yellow);
+					}
 				}
 			}
 
@@ -210,6 +271,13 @@ namespace TweakableParam
 
 		public void DrawGUI()
 		{
+			if (receiver == null || receiver.parentModule == null || receiver.parentModule.part == null)
+			{ 
+				Debug.Log("Curve receiver is null.");
+				DeleteGUI();
+				return;
+			}
+
 			GUI.skin = HighLogic.Skin;
 
 			if (windowUpdated)
@@ -263,32 +331,61 @@ namespace TweakableParam
 					isNextClicked = GUILayout.Button("->", GUILayout.Width(40));
 					if (isPrevClicked == true)
 					{
-						recordIndex--;
-						if(recordIndex < 0)
-							recordIndex = m_values.Count - 1;
+						if (m_values.Count != 0)
+						{
+							recordIndex--;
+							if (recordIndex < 0)
+								recordIndex = m_values.Count - 1;
+						}
+						else
+							recordIndex = -1;
 					}
 					if (isNextClicked == true)
 					{
-						recordIndex++;
-						recordIndex = recordIndex % m_values.Count;
+						if (m_values.Count != 0)
+						{
+							recordIndex++;
+							recordIndex = recordIndex % m_values.Count;
+						}
+						else
+							recordIndex = -1;
 					}
 
-					recordKey = m_values[recordIndex].x;
-					recordValue = m_values[recordIndex].y;
+					if ((isPrevClicked == true || isNextClicked == true) && recordIndex != -1)
+					{
+						recordKey = m_values[recordIndex].x;
+						recordValue = m_values[recordIndex].y;
+						canvasInvalidated = true;
+					}
+					
 					recordKeyStr = recordKey.ToString("F2");
 					recordValueStr = recordValue.ToString("F2");
 					Single.TryParse(GUILayout.TextField(recordKeyStr, GUILayout.ExpandWidth(true)), out recordKey);
 					recordKeyStr = recordKey.ToString("F2");
 					Single.TryParse(GUILayout.TextField(recordValueStr, GUILayout.ExpandWidth(true)), out recordValue);
-					recordValueStr = recordValue.ToString("F2"); 
+					recordValueStr = recordValue.ToString("F2");
 				}
 				GUILayout.EndHorizontal();
 				GUILayout.BeginHorizontal(GUILayout.ExpandWidth(true), GUILayout.ExpandHeight(true));
 				{ 
 					// Add, Edit, Remove Buttons.
-					//isAddClicked = GUILayout.Button("Add", GUILayout.ExpandWidth(true));
-					//isEditClicked = GUILayout.Button("Edit", GUILayout.ExpandWidth(true));
-					//isRemoveClicked = GUILayout.Button("Remove", GUILayout.ExpandWidth(true));
+					isAddClicked = GUILayout.Button("Add", GUILayout.ExpandWidth(true));
+					isEditClicked = GUILayout.Button("Edit", GUILayout.ExpandWidth(true));
+					isRemoveClicked = GUILayout.Button("Remove", GUILayout.ExpandWidth(true));
+					if (isAddClicked)
+					{
+						recordIndex = AddKeyValuePair(recordKey, recordValue);
+					}
+					if (isEditClicked && recordIndex != -1)
+					{
+						recordIndex = EditKeyValuePair(recordIndex, recordKey, recordValue);
+					}
+					if (isRemoveClicked && recordIndex != -1)
+					{
+						RemoveKeyValuePair(recordIndex);
+						if (recordIndex == m_values.Count)
+							recordIndex--;
+					}
 				}
 				GUILayout.EndHorizontal();
 				GUILayout.BeginHorizontal(GUILayout.ExpandWidth(true), GUILayout.ExpandHeight(true));
@@ -306,12 +403,15 @@ namespace TweakableParam
 			
 			if (isOkClicked == true || isCancelClicked == true)
 			{
-				if (isOkClicked == true)
+				if (isOkClicked == true && m_values.Count != 0)
 					SubmitDataToReceiver();
-				receiver = null;
-				canvasInvalidated = true;
-				m_values.Clear();
-				DeleteGUI();
+				if (isCancelClicked == true || (isOkClicked == true && m_values.Count != 0))
+				{
+					receiver = null;
+					canvasInvalidated = true;
+					m_values.Clear();
+					DeleteGUI();
+				}
 			}
 		}
 		#endregion

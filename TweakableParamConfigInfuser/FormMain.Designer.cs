@@ -35,6 +35,8 @@
 			this.folderDlg = new System.Windows.Forms.FolderBrowserDialog();
 			this.btnCheckAll = new System.Windows.Forms.Button();
 			this.btnCheckNone = new System.Windows.Forms.Button();
+			this.buttonOutputMMConfig = new System.Windows.Forms.Button();
+			this.txtMMCfg = new System.Windows.Forms.TextBox();
 			this.SuspendLayout();
 			// 
 			// lblPath
@@ -69,7 +71,7 @@
 			// 
 			this.btnApply.Location = new System.Drawing.Point(12, 300);
 			this.btnApply.Name = "btnApply";
-			this.btnApply.Size = new System.Drawing.Size(436, 30);
+			this.btnApply.Size = new System.Drawing.Size(215, 40);
 			this.btnApply.TabIndex = 3;
 			this.btnApply.Text = "Add TweakableParam Capability to Selected Parts";
 			this.btnApply.UseVisualStyleBackColor = true;
@@ -95,11 +97,36 @@
 			this.btnCheckNone.UseVisualStyleBackColor = true;
 			this.btnCheckNone.Click += new System.EventHandler(this.btnCheckNone_Click);
 			// 
+			// buttonOutputMMConfig
+			// 
+			this.buttonOutputMMConfig.Location = new System.Drawing.Point(233, 300);
+			this.buttonOutputMMConfig.Name = "buttonOutputMMConfig";
+			this.buttonOutputMMConfig.Size = new System.Drawing.Size(215, 40);
+			this.buttonOutputMMConfig.TabIndex = 6;
+			this.buttonOutputMMConfig.Text = "Generate MM Config";
+			this.buttonOutputMMConfig.UseVisualStyleBackColor = true;
+			this.buttonOutputMMConfig.Click += new System.EventHandler(this.buttonOutputMMConfig_Click);
+			// 
+			// txtMMCfg
+			// 
+			this.txtMMCfg.AcceptsReturn = true;
+			this.txtMMCfg.AcceptsTab = true;
+			this.txtMMCfg.Location = new System.Drawing.Point(12, 346);
+			this.txtMMCfg.Multiline = true;
+			this.txtMMCfg.Name = "txtMMCfg";
+			this.txtMMCfg.ReadOnly = true;
+			this.txtMMCfg.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
+			this.txtMMCfg.Size = new System.Drawing.Size(435, 145);
+			this.txtMMCfg.TabIndex = 7;
+			this.txtMMCfg.WordWrap = false;
+			// 
 			// FormMain
 			// 
 			this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 12F);
 			this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-			this.ClientSize = new System.Drawing.Size(456, 342);
+			this.ClientSize = new System.Drawing.Size(456, 496);
+			this.Controls.Add(this.txtMMCfg);
+			this.Controls.Add(this.buttonOutputMMConfig);
 			this.Controls.Add(this.btnCheckNone);
 			this.Controls.Add(this.btnCheckAll);
 			this.Controls.Add(this.btnApply);
@@ -110,6 +137,7 @@
 			this.Name = "FormMain";
 			this.Text = "TweakableParam Configuration Infuser";
 			this.ResumeLayout(false);
+			this.PerformLayout();
 
 		}
 
@@ -122,6 +150,8 @@
 		private System.Windows.Forms.FolderBrowserDialog folderDlg;
 		private System.Windows.Forms.Button btnCheckAll;
 		private System.Windows.Forms.Button btnCheckNone;
+		private System.Windows.Forms.Button buttonOutputMMConfig;
+		private System.Windows.Forms.TextBox txtMMCfg;
 	}
 }
 

@@ -205,5 +205,101 @@ namespace TweakableParamConfigInfuser
 				chkBoxList.SetItemChecked(i, false);
 		}
 
+		private void buttonOutputMMConfig_Click(object sender, EventArgs e)
+		{
+			DialogResult dlgResult = MessageBox.Show("All content will be set into clipboard. Do you want to continue?", "Confirm operation", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+			if (dlgResult == DialogResult.Yes)
+			{
+				GenerateMMConfig();
+			}
+		}
+
+		private void GenerateMMConfig()
+		{ 
+			string finalOutput = "";
+			foreach (object o in chkBoxList.CheckedItems)
+			{
+				string relativePath = o as string;
+				string partCfgFilePath = Path.Combine(lblPath.Text, relativePath);
+				if (File.Exists(partCfgFilePath))
+				{
+					string partCfgFileContent = File.ReadAllText(partCfgFilePath);
+					
+					int partStr = partCfgFileContent.IndexOf("PART", StringComparison.CurrentCulture);
+					while (partStr != -1)
+					{
+						int begin = partStr;
+						partStr = partCfgFileContent.IndexOf("PART", partStr + 1, StringComparison.CurrentCulture);
+
+						string partDef = "";
+						if (partStr == -1)
+							partDef = partCfgFileContent.Substring(begin);
+						else
+							partDef = partCfgFileContent.Substring(begin, partStr - begin);
+						string[] partDefLines = partDef.Split(new string[] {"\r\n", "\n", "\r"}, StringSplitOptions.RemoveEmptyEntries);
+
+						string pName = "";
+						string pTitle = "";
+						string pManu = "";
+						string pDesc = "";
+
+						foreach (string line in partDefLines)
+						{ 
+							string tLine = line.Trim();
+							if(tLine.StartsWith("name"))
+							{
+								if(tLine.Substring(4).Trim().StartsWith("="))
+								{
+									pName = tLine.Substring(tLine.IndexOf('=') + 1).Trim();
+								}
+							}
+
+							if (tLine.StartsWith("title"))
+							{
+								if (tLine.Substring(5).Trim().StartsWith("="))
+								{
+									pTitle = tLine.Substring(tLine.IndexOf('=') + 1).Trim();
+								}
+							}
+
+							if (tLine.StartsWith("manufacturer"))
+							{
+								if (tLine.Substring(12).Trim().StartsWith("="))
+								{
+									pManu = tLine.Substring(tLine.IndexOf('=') + 1).Trim();
+								}
+							}
+
+							if (tLine.StartsWith("description"))
+							{
+								if (tLine.Substring(11).Trim().StartsWith("="))
+								{
+									pDesc = tLine.Substring(tLine.IndexOf('=') + 1).Trim();
+								}
+							}
+
+							if (pName != "" && pTitle != "" && pManu != "" && pDesc != "") break;
+						}
+
+						finalOutput += "@PART[" + pName + "]" + Environment.NewLine +
+							"{" + Environment.NewLine +
+							"    --title = " + pTitle + Environment.NewLine +
+							"    --manufacturer = " + pManu + Environment.NewLine +
+							"    --description = " + pDesc + Environment.NewLine +
+							Environment.NewLine +
+							"    @title = " + Environment.NewLine +
+							"    @manufacturer = " + Environment.NewLine +
+							"    @description = " + Environment.NewLine +
+							"}" + Environment.NewLine +
+							Environment.NewLine +
+							Environment.NewLine;
+
+					}
+				}
+			}
+
+			txtMMCfg.Text = finalOutput;
+		}
+
 	}
 }
