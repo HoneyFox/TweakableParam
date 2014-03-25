@@ -246,7 +246,7 @@ namespace TweakableParamConfigInfuser
 						foreach (string line in partDefLines)
 						{ 
 							string tLine = line.Trim();
-							if(tLine.StartsWith("name"))
+							if(pName == "" && tLine.StartsWith("name"))
 							{
 								if(tLine.Substring(4).Trim().StartsWith("="))
 								{
@@ -254,7 +254,7 @@ namespace TweakableParamConfigInfuser
 								}
 							}
 
-							if (tLine.StartsWith("title"))
+							if (pTitle == "" && tLine.StartsWith("title"))
 							{
 								if (tLine.Substring(5).Trim().StartsWith("="))
 								{
@@ -262,7 +262,7 @@ namespace TweakableParamConfigInfuser
 								}
 							}
 
-							if (tLine.StartsWith("manufacturer"))
+							if (pManu == "" && tLine.StartsWith("manufacturer"))
 							{
 								if (tLine.Substring(12).Trim().StartsWith("="))
 								{
@@ -270,7 +270,7 @@ namespace TweakableParamConfigInfuser
 								}
 							}
 
-							if (tLine.StartsWith("description"))
+							if (pDesc == "" && tLine.StartsWith("description"))
 							{
 								if (tLine.Substring(11).Trim().StartsWith("="))
 								{
