@@ -34,6 +34,8 @@ namespace TweakableParam
 
 		public List<ModuleTweakableSubParam> tweakableParams = new List<ModuleTweakableSubParam>();
 
+		private int timesToReapplyValues = 30;
+
 		public override void OnAwake()
 		{
 			//Debug.Log("TweakableParam OnAwake()");
@@ -54,21 +56,48 @@ namespace TweakableParam
 				// Single Target Mode.
 				Debug.Log("Trying to get field info of: " + targetField);
 				SetInitialValueOfField(targetField);
-				base.OnStart(state);
+				base.OnStart(m_startState);
 			}
 			else
 			{ 
 				// Multiple Target Mode.
-				Debug.Log("Now we'll parse multiple submodules.");
 				ParseMultipleModules(tweakableParams, tweakableParamModulesData);
+				Debug.Log("Now we'll parse multiple submodules. (" + tweakableParams.Count.ToString() + ")");
 				foreach (ModuleTweakableSubParam module in tweakableParams)
 				{
 					module.OnStart(m_startState);
 				}
-				base.OnStart(state);
+				base.OnStart(m_startState);
 			}
 		}
 
+		public void FixedUpdate()
+		{
+			if (m_startState == StartState.Editor || m_startState == StartState.None)
+			{
+				return;
+			}
+			if (timesToReapplyValues > 0)
+			{
+				if (useMultipleParameterLogic == false)
+				{
+					// Single Target Mode.
+					Debug.Log("Trying to get field info of: " + targetField);
+					SetInitialValueOfField(targetField);
+				}
+				else
+				{
+					// Multiple Target Mode.
+					Debug.Log("Now we'll parse multiple submodules. (" + tweakableParams.Count.ToString() + ")");
+					foreach (ModuleTweakableSubParam module in tweakableParams)
+					{
+						module.OnStart(m_startState);
+					}
+				}
+				timesToReapplyValues--;
+			}
+		}
+		
 		public void SetInitialValueOfField(string targetField)
 		{
 			object obj = null;
