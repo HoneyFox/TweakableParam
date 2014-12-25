@@ -257,7 +257,7 @@ namespace TweakableParam
 			if (isExpanded)
 			{
 				m_part.SetHighlightType(Part.HighlightType.AlwaysOn);
-				m_part.SetHighlight(true);
+				m_part.SetHighlight(true, false);
 
 				foreach (TweakableParamGUIItem item in m_guiItems)
 				{
@@ -270,7 +270,7 @@ namespace TweakableParam
 				if (m_part.highlightType == Part.HighlightType.AlwaysOn)
 				{
 					m_part.SetHighlightType(Part.HighlightType.OnMouseOver);
-					m_part.SetHighlight(false);
+					m_part.SetHighlight(false, false);
 				}
 			}
 
@@ -286,7 +286,7 @@ namespace TweakableParam
 						if (group.m_part.highlightType == Part.HighlightType.AlwaysOn)
 						{
 							group.m_part.SetHighlightType(Part.HighlightType.OnMouseOver);
-							group.m_part.SetHighlight(false);
+							group.m_part.SetHighlight(false, false);
 						}
 					}
 				}
@@ -352,7 +352,7 @@ namespace TweakableParam
 				part = (this.m_controller as ModuleTweakableParam).part;
 			else if (this.m_controller is ModuleTweakableSubParam)
 				part = (this.m_controller as ModuleTweakableSubParam).parentModule.part;
-			if (part.localRoot == EditorLogic.startPod)
+			if (part.localRoot == EditorLogic.RootPart)
 			{
 				return true;
 			}

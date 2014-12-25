@@ -37,12 +37,12 @@ namespace TweakableParam
 				{
 					Debug.Log("P Received.");
 					Part newPart = null;
-					if (EditorLogic.fetch.editorScreen == EditorLogic.EditorScreen.Parts)
+					if (EditorLogic.fetch.editorScreen == EditorScreen.Parts)
 					{
-						newPart = EditorLogic.fetch.PartSelected;
+						newPart = EditorLogic.SelectedPart;
 
 					}
-					else if (EditorLogic.fetch.editorScreen == EditorLogic.EditorScreen.Actions)
+					else if (EditorLogic.fetch.editorScreen == EditorScreen.Actions)
 					{
 						newPart = (EditorActionGroups.Instance.HasSelectedParts() == true ? EditorActionGroups.Instance.GetSelectedParts()[0] : null);
 					}

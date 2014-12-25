@@ -34,7 +34,7 @@ namespace TweakableParam
 
 		public List<ModuleTweakableSubParam> tweakableParams = new List<ModuleTweakableSubParam>();
 
-		private int timesToReapplyValues = 200;
+		private int timesToReapplyValues = 1;
 
 		public override void OnAwake()
 		{
